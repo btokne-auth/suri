@@ -1,0 +1,9 @@
+# Never let the coding helper read secrets
+.env
+.env.*
+*.pem
+*.key
+
+# Large or generated folders (noise, and they use up tokens)
+node_modules/
+.next/
