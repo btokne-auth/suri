@@ -13,8 +13,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const ENDPOINT = "https://api.meta.ai/v1/chat/completions";
-const MODEL = "muse-spark-1.3";
+const READER_CONFIGS = {
+  meta: {
+    baseUrl: "https://api.meta.ai/v1",
+    model: "muse-spark-1.3",
+    keyName: "META_API_KEY",
+  },
+  baseten: {
+    baseUrl: "https://inference.baseten.co/v1",
+    model: "meta-models/muse-spark-open-1026",
+    keyName: "BASETEN_API_KEY",
+  },
+};
+
+const provider = (process.env.READER_PROVIDER || "meta").toLowerCase();
 
 const MIME_BY_EXTENSION = {
   ".jpg": "image/jpeg",
@@ -63,10 +75,24 @@ if (!imagePath) {
   fail("missing image path. Usage: node --env-file=.env.local scripts/read-test.mjs <image-path>");
 }
 
-const apiKey = process.env.META_API_KEY;
-if (!apiKey) {
-  fail("META_API_KEY is not set. Run with: node --env-file=.env.local scripts/read-test.mjs <image-path>");
+if (!READER_CONFIGS[provider]) {
+  fail(
+    `unknown READER_PROVIDER "${process.env.READER_PROVIDER}". Use "meta" or "baseten".`
+  );
 }
+
+const { baseUrl: BASE_URL, model: MODEL, keyName: KEY_NAME } =
+  READER_CONFIGS[provider];
+const ENDPOINT = `${BASE_URL}/chat/completions`;
+
+const apiKey = process.env[KEY_NAME];
+if (!apiKey) {
+  fail(
+    `${KEY_NAME} is not set. Run with: node --env-file=.env.local scripts/read-test.mjs <image-path>`
+  );
+}
+
+console.log(`Provider: ${provider} | Model: ${MODEL}`);
 
 const ext = path.extname(imagePath).toLowerCase();
 const mimeType = MIME_BY_EXTENSION[ext];
@@ -111,7 +137,7 @@ try {
     body: JSON.stringify(body),
   });
 } catch (err) {
-  fail(`could not reach the Meta Model API: ${err.message}`);
+  fail(`could not reach the ${provider} API: ${err.message}`);
 }
 const seconds = (Date.now() - startedAt) / 1000;
 

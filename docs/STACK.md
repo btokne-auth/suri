@@ -14,6 +14,7 @@
 | Who reviews | **Demo mode:** a header switch flips the same visitor between **Applicant** and **Reviewer** view, on their own submission only | No accounts or roles; `reviewer_id` is the visitor's own `user_id`. Real offices would add reviewer accounts later |
 | AI: reading + checking | **Muse Spark 1.3** (`muse-spark-1.3`) through the Meta Model API (OpenAI-compatible, base URL `https://api.meta.ai/v1`, key in `META_API_KEY`) | Image + PDF input, structured output, tool calling. Standard mode only |
 | AI: cropping | SAM 3.1 through the Meta Model API | Second Meta model with a real job (Should) |
+| AI: backup reader | **Muse Spark Open** (`meta-models/muse-spark-open-1026`) through Baseten (OpenAI-compatible, base URL `https://inference.baseten.co/v1`, key in `BASETEN_API_KEY`) | Backup reader and the 3-way scorecard; $100 credits granted |
 | Other Meta models | Not used: Muse Wonder (preview, costs more), Muse Image, Muse Voice Transcribe, Muse Glimmer, Muse Code | Only add one if it does a real job |
 | Output checking | Zod (schema library) | Rejects any model output that doesn't fit |
 | Plain OCR baseline | Tesseract.js: in the eval script, and in the browser for the reviewer's "Compare with plain OCR" view | Runs in the browser, so no server time limits |
@@ -21,6 +22,10 @@
 | Email | None | Not needed |
 | Code | GitHub repo, **private during the build, public at submission** (after the secret scan) | Hackathon rule: submitted repo must be public |
 | Coding helper | VS Code + Cline using `muse-spark-1.3` (organizers confirmed any coding tools are allowed) | Paid by the hackathon credits |
+
+## Reader provider
+
+- Env `READER_PROVIDER` = `meta` (default) or `baseten`; same request code for both (OpenAI-compatible).
 
 ## Model rules
 
@@ -38,7 +43,7 @@ Plain OCR on a serverless function runs out of time because the image work happe
 
 - **$150 Meta Model API credits** (active). The Billing page's Spend Limit is a **notification, not a hard cap**: spending past the credits is charged to the card.
 - Check usage on the Billing page **every night**. Stop at about **$120 used**. Keep **$30** untouched for Suri itself and the demo.
-- Partner credits (Baseten, Modal, Fireworks) were requested but are **not guaranteed**. Never plan a step around them.
+- **$100 Baseten credits granted** for the Muse Spark Open backup reader and the 3-way scorecard. Other partner credits (Modal, Fireworks) were requested but are **not guaranteed**. Never plan a step around them.
 - Price reference (`muse-spark-1.3`): $1.25 input / $0.15 cached input / $4.25 output per million tokens.
 
 ## Accounts
