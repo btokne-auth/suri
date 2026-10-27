@@ -50,7 +50,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Vercel project created (function region sin1), live at https://suri-ph.vercel.app
 - [x] Step 2 "Prove the AI" done
 - [x] Step 3 settings + rules done (3 doc types, process file, Zod validation, 7/7 tests pass)
-- [ ] Next: step 4 database, storage, sessions (tables, RLS, private bucket, anonymous sign-in)
+- [x] Step 4 database, storage, sessions done (9 tables, SELECT-only RLS + grants, private uploads bucket 10 MB, anonymous sign-in; isolation passed locally both directions, live /api/session OK + /api/test-seed 404)
+- [ ] Next: step 5 upload pipeline (file checks, limits, background reading, statuses)
 - [ ] Check the Billing page usage every night
 
 ## Daily log
@@ -61,4 +62,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 1 (Oct 27, morning):** Morning: API key + Cline (muse-spark-1.3, auto-approve Read only). Supabase + Vercel set up, live at suri-ph.vercel.app. Step 2 passed: scripts/read-test.mjs read a synthetic SAMPLE birth certificate 8/8 fields correct, both a clean image (4.1 s, ~2.6k tokens) and a tilted, glare-y phone photo of the screen (3.8 s, ~5.4k tokens). Note: the model said 'high' confidence on every field; check calibration on harder samples in the step 8 eval.
 - **Day 1 (Oct 27):** Baseten granted ($100). read-test.mjs now supports READER_PROVIDER=meta|baseten. Muse Spark Open (Baseten): clean image correct (10.2 s, ~3.6k tokens); messy phone photo 0/8, every field 'unreadable' (21.9 s, ~8.1k tokens). It saw the image (4.5k prompt tokens) but couldn't read the rotated/glare photo, and didn't invent values. Muse Spark 1.3 stays the main reader. Idea for step 9: test whether SAM 3.1 crop/straighten lets Muse Spark Open read messy photos (scorecard + open-weights prize).
 - **Day 1 (Oct 27, Noon):** Step 3 done: 3 doc-type settings + Linawan process file (data only, flat address_city_municipality), Zod validation (validateExtraction returns ok/fields/issues, bad values flagged never fixed), tests 7/7 pass. **Next:** step 4 database/storage/sessions.
-- **Day 2 (Oct 28):** Step 4 local isolation passed (Brave/Opera/Edge): each browser sees its own row only, cross-read 0 rows both ways, browser INSERT blocked. Fix: auto-expose off left service_role with no table privileges, granted in SQL editor, saved as 0002_grant_service_role.sql. Test helpers (/api/test-seed, /test-isolation) are dev-only (404 in production). **Next:** push, confirm /api/session + /api/test-seed 404 on live URL.
+- **Day 1 (Oct 27, Noon part 2):** Step 4 local isolation passed (Brave/Opera/Edge): each browser sees its own row only, cross-read 0 rows both ways, browser INSERT blocked. Fix: auto-expose off left service_role with no table privileges, granted in SQL editor, saved as 0002_grant_service_role.sql. Test helpers (/api/test-seed, /test-isolation) are dev-only (404 in production). Live check passed: /api/session returns {"user_id":null}, POST /api/test-seed returns 404 Not found. Step 4 done. **Next:** step 5 upload pipeline.
