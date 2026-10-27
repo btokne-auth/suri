@@ -37,7 +37,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Where we are now
 
-**Day 2 (Oct 28), step 4: database, storage, sessions**
+**Day 1 (Oct 27, evening), step 5: upload pipeline done, next step 6**
+- [x] Step 5 upload pipeline done (profile, submissions, upload + magic-byte checks + limits, background reading reading to needs_review on its own, owner-only image URL; phone proof passed; dev-only test page 404s in production)
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
 - [x] VS Code + Cline installed (Cline's built-in **Meta** provider: Base URL, API key, Model ID); Meta API key created and Cline connected
@@ -51,7 +52,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 2 "Prove the AI" done
 - [x] Step 3 settings + rules done (3 doc types, process file, Zod validation, 7/7 tests pass)
 - [x] Step 4 database, storage, sessions done (9 tables, SELECT-only RLS + grants, private uploads bucket 10 MB, anonymous sign-in; isolation passed locally both directions, live /api/session OK + /api/test-seed 404)
-- [ ] Next: step 5 upload pipeline (file checks, limits, background reading, statuses)
+- [x] Step 5 upload pipeline done (file checks, limits, background reading, statuses); phone proof passed locally
+- [ ] Next: step 6 profile, checks, requirement check
 - [ ] Check the Billing page usage every night
 
 ## Daily log
@@ -63,3 +65,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 1 (Oct 27):** Baseten granted ($100). read-test.mjs now supports READER_PROVIDER=meta|baseten. Muse Spark Open (Baseten): clean image correct (10.2 s, ~3.6k tokens); messy phone photo 0/8, every field 'unreadable' (21.9 s, ~8.1k tokens). It saw the image (4.5k prompt tokens) but couldn't read the rotated/glare photo, and didn't invent values. Muse Spark 1.3 stays the main reader. Idea for step 9: test whether SAM 3.1 crop/straighten lets Muse Spark Open read messy photos (scorecard + open-weights prize).
 - **Day 1 (Oct 27, Noon):** Step 3 done: 3 doc-type settings + Linawan process file (data only, flat address_city_municipality), Zod validation (validateExtraction returns ok/fields/issues, bad values flagged never fixed), tests 7/7 pass. **Next:** step 4 database/storage/sessions.
 - **Day 1 (Oct 27, Noon part 2):** Step 4 local isolation passed (Brave/Opera/Edge): each browser sees its own row only, cross-read 0 rows both ways, browser INSERT blocked. Fix: auto-expose off left service_role with no table privileges, granted in SQL editor, saved as 0002_grant_service_role.sql. Test helpers (/api/test-seed, /test-isolation) are dev-only (404 in production). Live check passed: /api/session returns {"user_id":null}, POST /api/test-seed returns 404 Not found. Step 4 done. **Next:** step 5 upload pipeline.
+- **Day 1 (Oct 27, evening):** Step 5 done: upload pipeline live locally, phone proof passed (SAMPLE valid_id photo went reading to needs_review on its own, ~4 polls). Laptop needed --hostname 0.0.0.0 for phone to reach dev server; React test page taps stuck on phone (plain HTML worked, so kept dev-only React page + added owner-only status route for polling). Temp public files removed. **Next:** step 6 profile/checks.
