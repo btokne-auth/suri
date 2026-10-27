@@ -30,11 +30,23 @@ export async function POST(request) {
   const docType = form.get('doc_type');
   const file = form.get('file');
   const admin = createAdminClient();
-  const { data: sub, error: se } = await admin.from('submissions').select('id,user_id').eq('id', typeof submissionId === 'string' ? submissionId : '').maybeSingle();
+  const { data: sub, error: se } = await admin.from('submissions').select('id,user_id,status').eq('id', typeof submissionId === 'string' ? submissionId : '').maybeSingle();
   if (se || !sub || sub.user_id !== userId) return NextResponse.json({ error: "This submission isn't yours." }, { status: 403 });
   const docs = linawan.documents || [];
   if (typeof docType !== 'string' || !docs.includes(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
-  if (docType !== 'valid_id') return NextResponse.json({ error: 'Upload your valid ID first. Other documents unlock after it passes.' }, { status: 403 });
+  if (docType !== 'valid_id') {
+    if (sub.status === 'requirement_not_met') return NextResponse.json({ error: linawan.requirement.message }, { status: 403 });
+    // Newest valid_id wins: older uploads are "replaced" and never unlock.
+    const { data: newestId } = await admin.from('documents').select('id,status').eq('submission_id', submissionId).eq('doc_type', 'valid_id').order('created_at', { ascending: false }).limit(1);
+    const gate = newestId && newestId.length > 0 ? newestId[0] : null;
+    if (gate && (gate.status === 'needs_review' || gate.status === 'approved')) {
+      // Gate passed: other slots unlock.
+    } else if (gate && (gate.status === 'uploaded' || gate.status === 'reading')) {
+      return NextResponse.json({ error: 'Your ID is still being checked. Please wait a moment.' }, { status: 409 });
+    } else {
+      return NextResponse.json({ error: 'Upload your valid ID first. Other documents unlock after it passes.' }, { status: 403 });
+    }
+  }
   if (!getDocumentType(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
   if (!file || typeof file.arrayBuffer !== 'function') return NextResponse.json({ error: 'No file. Please choose a photo or PDF.' }, { status: 400 });
   if (file.size > MAX_BYTES) return NextResponse.json({ error: 'This file is too large. Try a smaller photo.' }, { status: 413 });
