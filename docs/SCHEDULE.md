@@ -37,7 +37,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Where we are now
 
-**Day 2 (Oct 28), step 3: settings + rules**
+**Day 2 (Oct 28), step 4: database, storage, sessions**
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
 - [x] VS Code + Cline installed (Cline's built-in **Meta** provider: Base URL, API key, Model ID); Meta API key created and Cline connected
@@ -49,7 +49,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Supabase project created (Singapore, automatic RLS on, auto-expose new tables off, new publishable/secret keys)
 - [x] Vercel project created (function region sin1), live at https://suri-ph.vercel.app
 - [x] Step 2 "Prove the AI" done
-- [ ] Next: step 3 settings + rules (settings format, the 3 document types, validation rules, schema check on model output)
+- [x] Step 3 settings + rules done (3 doc types, process file, Zod validation, 7/7 tests pass)
+- [ ] Next: step 4 database, storage, sessions (tables, RLS, private bucket, anonymous sign-in)
 - [ ] Check the Billing page usage every night
 
 ## Daily log
@@ -59,3 +60,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 1 (Oct 27, ~1 AM):** Private repo created. Next.js 16.4.3 app created (JavaScript, Tailwind v4, App Router; the setup tool made the first local commit). Windows Application Control blocks Next's native SWC file, so Next falls back to WASM and Turbopack can't run: fixed with `--webpack` on `dev` and `build`. Tailwind was wired only through Turbopack, so added `@tailwindcss/postcss` + `postcss.config.mjs` and cleared `.next`; the styled starter page now shows on localhost:3000. Plan split into `docs/`. **Next:** add docs and rule files, first commit, push.
 - **Day 1 (Oct 27, morning):** Morning: API key + Cline (muse-spark-1.3, auto-approve Read only). Supabase + Vercel set up, live at suri-ph.vercel.app. Step 2 passed: scripts/read-test.mjs read a synthetic SAMPLE birth certificate 8/8 fields correct, both a clean image (4.1 s, ~2.6k tokens) and a tilted, glare-y phone photo of the screen (3.8 s, ~5.4k tokens). Note: the model said 'high' confidence on every field; check calibration on harder samples in the step 8 eval.
 - **Day 1 (Oct 27):** Baseten granted ($100). read-test.mjs now supports READER_PROVIDER=meta|baseten. Muse Spark Open (Baseten): clean image correct (10.2 s, ~3.6k tokens); messy phone photo 0/8, every field 'unreadable' (21.9 s, ~8.1k tokens). It saw the image (4.5k prompt tokens) but couldn't read the rotated/glare photo, and didn't invent values. Muse Spark 1.3 stays the main reader. Idea for step 9: test whether SAM 3.1 crop/straighten lets Muse Spark Open read messy photos (scorecard + open-weights prize).
+- **Day 2 (Oct 28):** Step 3 done: 3 doc-type settings + Linawan process file (data only, flat address_city_municipality), Zod validation (validateExtraction returns ok/fields/issues, bad values flagged never fixed), tests 7/7 pass. **Next:** step 4 database/storage/sessions.
