@@ -35,6 +35,10 @@ body {
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 html,
 body {
   max-width: 100%;
