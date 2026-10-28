@@ -134,6 +134,10 @@ describe("receipt self-check rows", () => {
     assert.equal(rows.length, 2);
     assert.ok(rows.every((r) => r.result === "match"));
     assert.ok(rows.every((r) => r.rule === "sum_equals"));
+    const subRow = rows.find((r) => r.field_key === "subtotal_amount");
+    const totRow = rows.find((r) => r.field_key === "total_amount");
+    assert.equal(subRow.reason, "Items add up to the subtotal.");
+    assert.equal(totRow.reason, "Subtotal plus VAT equals the total.");
   });
 
   it("bad total mismatches with message", () => {

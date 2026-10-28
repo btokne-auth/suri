@@ -38,7 +38,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Where we are now
 
-**Day 2 (Oct 28, morning), step 7: reviewer view**
+**Day 2 (Oct 28), step 8: scorecard**
 - [x] Step 5 upload pipeline done (profile, submissions, upload + magic-byte checks + limits, background reading reading to needs_review on its own, owner-only image URL; phone proof passed; dev-only test page 404s in production)
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
@@ -59,8 +59,28 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Phone layout fix coded (viewport, one column below 768px with work log under documents, 16px text / 44px targets, compared-against labels from settings, reading note hides when nothing is reading; 48/48 tests, lint 0 errors, build passes)
 - [x] Phone layout leftovers coded (reviewer image full-width on top under 768px via mobile-first CSS; every check renders "result — same as X" from compared_document_id in both checklist + reviewer; 50/50 tests, lint 0 errors, build passes)
 - [x] Robustness + profile date fix coded: stuck "reading" over 2 min flips to "error" with "Reading took too long. Please upload again." on GET /api/submissions/[id] (no cron, re-upload works as newest wins); background read wrapped so any error sets "error"; /profile birth date is native date input with label, min 1900-01-01, max today after open, YYYY-MM-DD, same server validation, no blocking handlers; date input max-width 100% at 360px; 57/57 tests, lint 0 errors, build passes
-- [ ] Next: commit + push, then live 360px phone check of the Must flow + receipt process on /start, then step 8
+- [x] Step 7 Must flow done on the live URL, phone + laptop
+- [x] Step 7b receipt check done on the live URL
+- [ ] Next: step 8 (scorecard)
 - [ ] Check the Billing page usage every night
+
+## Polish list (step 10)
+
+- Applicant / Reviewer switch should show which side is active
+- Field labels in plain words (full_name → Full name, date_of_birth → Birth date, etc.)
+- Work log labels in plain words (check_finished, reading_started → plain sentences)
+- /profile shows the same error twice (red under the field and grey at the bottom)
+- Empty birth date says "use YYYY-MM-DD"; should say "Please enter your birth date"
+- Amounts shown inconsistently (75 vs 75.00); show as ₱75.00
+
+## Known limits (for README)
+
+- Receipt check reads up to 3 item lines
+- A document stuck in "reading" is only marked as error when the checklist is opened or refreshed
+
+## Plan note
+
+- If step 8 finishes early, move the base theme (colors, Manrope font, button and input styles) up to right after step 8; logo, scan beam, hero and light toggle stay in step 10.
 
 ## Daily log
 
@@ -77,3 +97,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 2 (Oct 28):** Phone layout leftovers coded: reviewer image is full-width on top under 768px (mobile-first CSS, side by side at 768px+); every check renders "result — same as X. reason" in both the applicant checklist and reviewer view, label resolved from compared_document_id via settings (null = profile), no hard-coded names, old baked-in suffixes stripped. 50/50 tests green, lint 0 errors, build passes. **Next:** commit + push, live 360px phone check.
 - **Day 2 (Oct 28):** Robustness + profile date fix coded: stuck "reading" over 2 min flips to "error" with "Reading took too long. Please upload again." on checklist load (no cron, re-upload works); background read always ends in "error" on failure; /profile birth date is native date input with label, min 1900-01-01, max today, YYYY-MM-DD, same server check. 57/57 tests, lint 0 errors, build passes. **Next:** commit + push, live 360px phone check.
 - **Day 2 (Oct 28):** Step 7b receipt check coded: official_receipt doc (3 optional item slots, subtotal/VAT/total), receipt_check process (no profile, no requirement), peso normalization before Zod for model output + reviewer corrections, generic sum_equals rule (empty slot = 0, all-empty skips, unreadable skips), self-check display without "same as", 2 sample templates (good totals + bad total). 75/75 tests, lint 0 errors, build passes. **Next:** commit + push, live phone + laptop check of receipt on /start, then step 8.
+- **Day 2 (Oct 28):** Phone layout fixed, stuck-reading timeout, profile birth date as month/day/year, step 7b receipt check live; about 2–3 days ahead of schedule.
