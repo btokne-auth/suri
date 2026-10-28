@@ -55,7 +55,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 4 database, storage, sessions done (9 tables, SELECT-only RLS + grants, private uploads bucket 10 MB, anonymous sign-in; isolation passed locally both directions, live /api/session OK + /api/test-seed 404)
 - [x] Step 5 upload pipeline done (file checks, limits, background reading, statuses); phone proof passed locally
 - [x] Step 6 done (names.js, run-checks + requirement gate, /start /profile /set pages + set API; 24/24 tests green, build passes; done-when passed on localhost in private windows)
-- [ ] Next: step 7 reviewer view (image beside fields, flags, approve / correct / reject with validation, review log)
+- [x] Step 7 code live (registry + /api/processes, generic gates, reviewer view + approve/reject/correct with Zod + re-run, override with note, read_ok wording; 41/41 tests green, lint 0 errors, build passes; laptop live proof: Test A 8 match + correction refused on top banner; Test B Maburol fail banner + read_ok + lock + override unlock + note logged)
+- [ ] Next: phone 360px pass of the same Must flow, then step 7b receipt process
 - [ ] Check the Billing page usage every night
 
 ## Daily log
