@@ -143,6 +143,7 @@ export default function SetClient() {
         <button type="button" onClick={() => setView('applicant')} disabled={view === 'applicant'} style={SMALLBTN}>Applicant</button>
         <button type="button" onClick={() => setView('reviewer')} disabled={view === 'reviewer'} style={SMALLBTN}>Reviewer</button>
       </div>
+      {msg && msg !== 'Loading...' && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{msg}</b></p>)}
       {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{data.process.requirement_message}</b> A person still decides.</p>)}
       {data.process.override_note && (<p style={{ border: '1px solid #888', padding: 12 }}><b>Overridden by reviewer:</b> {data.process.override_note} A person decides.</p>)}
       {view === 'reviewer' && data.submission.status === 'requirement_not_met' && (
@@ -239,7 +240,6 @@ export default function SetClient() {
           </ol>
         </aside>
       </div>
-      {msg && <p>{msg}</p>}
     </main>
   );
 }
