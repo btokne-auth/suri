@@ -127,7 +127,8 @@ img {
 
 .set-page input[type="file"],
 .start-page input[type="file"],
-.profile-page input[type="file"] {
+.profile-page input[type="file"],
+.profile-page input[type="date"] {
   min-height: 44px;
   max-width: 100%;
 }

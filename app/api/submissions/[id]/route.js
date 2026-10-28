@@ -9,6 +9,7 @@ const require = createRequire(import.meta.url);
 const { getProcess } = require('../../../../lib/processes/index.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
 const { buildRequirementFailReason, comparedLabel } = require('../../../../lib/checks/run-checks.js');
+const { isStaleReading, READING_TIMEOUT_MESSAGE } = require('../../../../lib/reading-timeout.js');
 export async function GET(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -36,6 +37,26 @@ export async function GET(request, ctx) {
   const byType = {};
   for (const d of list) {
     if (!byType[d.doc_type]) byType[d.doc_type] = d;
+  }
+  // Robustness: a background read can die (API error, timeout, after()
+  // never ran) and leave a row in "uploaded"/"reading" forever. If the
+  // newest row for a type has been reading for more than 2 minutes,
+  // flip it to "error" with a friendly message so re-upload works.
+  // No cron: this runs on page load (GET /api/submissions/[id]).
+  const nowMs = Date.now();
+  const timedOutIds = new Set();
+  for (const t of Object.keys(byType)) {
+    const d = byType[t];
+    if (d && isStaleReading(d.status, d.created_at, nowMs)) {
+      try {
+        await admin.from('documents').update({ status: 'error' }).eq('id', d.id);
+      } catch { /* keep showing error even if the write fails */ }
+      try {
+        await admin.from('work_log').insert({ submission_id: sid, step_type: 'reading_failed', message: READING_TIMEOUT_MESSAGE.slice(0, 200) });
+      } catch { /* logging must not break the checklist */ }
+      d.status = 'error';
+      timedOutIds.add(d.id);
+    }
   }
   const activeIds = new Set(Object.values(byType).map((d) => d.id));
   const docIds = Array.from(activeIds);
@@ -86,7 +107,10 @@ export async function GET(request, ctx) {
         reason = 'Photo unreadable, please retake.';
       } else if (d.status === 'error') {
         action = 'retake';
-        reason = "Couldn't read this photo. Please try again.";
+        // Timed-out reads (flipped above) get the friendly timeout message;
+        // other errors keep the generic retake message. Both allow re-upload:
+        // newest row wins, so uploading again just works.
+        reason = timedOutIds.has(d.id) ? READING_TIMEOUT_MESSAGE : "Couldn't read this photo. Please try again.";
       } else if (hasMismatch) {
         action = 'mismatch';
         reason = (mine.find((c) => c.result === 'mismatch') || {}).reason || 'Does not match.';
