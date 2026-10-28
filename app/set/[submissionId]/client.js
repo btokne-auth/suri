@@ -144,12 +144,18 @@ export default function SetClient() {
   const stillReading = (data.rows || []).some((row) => row && (row.status === 'uploaded' || row.status === 'reading'));
   const showMsg = msg && msg !== 'Loading...' && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
   // Each check says what it compared against: "same as your profile" or
-  // "same as {label}". The label arrives on each check from the API
-  // (document settings, never hard-coded); the fallback below rebuilds it
-  // from the row labels for the same result.
+  // "same as {label}". Self-checks (sum_equals) compare within the same
+  // document, so they show no "same as" suffix. The label arrives on each
+  // check from the API (document settings, never hard-coded); the fallback
+  // below rebuilds it from the row labels for the same result.
   const labelByType = {};
   for (const row of (data.rows || [])) {
     if (row && row.doc_type && row.label && !labelByType[row.doc_type]) labelByType[row.doc_type] = row.label;
+  }
+  function isSelfCheck(c) {
+    if (!c) return false;
+    if (c.rule === 'sum_equals') return true;
+    return false;
   }
   function comparedLabelText(c) {
     if (c && c.compared_label) return c.compared_label;
@@ -163,6 +169,9 @@ export default function SetClient() {
     return String(reason || '').replace(/\s*[—–-]\s*same as [^.]*\.?\s*$/i, '').trim();
   }
   function checkLine(c) {
+    if (isSelfCheck(c)) {
+      return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b>. {cleanReason(c.reason)}</span>);
+    }
     return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b> — same as {comparedLabelText(c)}. {cleanReason(c.reason)}</span>);
   }
   function checksFor(docId) {

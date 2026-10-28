@@ -30,7 +30,12 @@ export default function StartClient() {
       const r = await fetch('/api/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ process_id: picked }) });
       const j = await r.json();
       if (!r.ok || !j.submission_id) { setMsg('Could not start. Please try again.'); setBusy(false); return; }
-      window.location.href = '/profile?submission=' + encodeURIComponent(j.submission_id);
+      const chosen = processes.find((p) => p.id === picked) || null;
+      if (chosen && chosen.needs_profile === false) {
+        window.location.href = '/set/' + encodeURIComponent(j.submission_id);
+      } else {
+        window.location.href = '/profile?submission=' + encodeURIComponent(j.submission_id);
+      }
     } catch { setMsg('Could not start. Please try again.'); setBusy(false); }
   }
   return (

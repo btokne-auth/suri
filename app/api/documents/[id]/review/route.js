@@ -10,7 +10,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { getDocumentType } = require('../../../../../lib/documents/index.js');
-const { buildValueSchema } = require('../../../../../lib/validation.js');
+const { buildValueSchema, normalizeAmount } = require('../../../../../lib/validation.js');
 const { runChecksForDocument } = require('../../../../../lib/checks/run-checks.js');
 const { isOwnedBy } = require('../../../../../lib/review-auth.js');
 export async function POST(request, ctx) {
@@ -53,9 +53,14 @@ export async function POST(request, ctx) {
   if (newValue === '' || newValue == null) return NextResponse.json({ error: 'Type a new value.' }, { status: 400 });
   let toCheck = newValue;
   if (fieldDef.type === 'number') {
-    const n = typeof newValue === 'number' ? newValue : Number(String(newValue).trim());
-    if (!Number.isFinite(n)) return NextResponse.json({ error: fieldDef.key + ' looks wrong: expected a number.' }, { status: 400 });
-    toCheck = n;
+    if (typeof newValue === 'number') {
+      if (!Number.isFinite(newValue)) return NextResponse.json({ error: fieldDef.key + ' looks wrong: expected a number.' }, { status: 400 });
+      toCheck = newValue;
+    } else {
+      const n = normalizeAmount(String(newValue));
+      if (n === null) return NextResponse.json({ error: fieldDef.key + ' looks wrong: expected a number.' }, { status: 400 });
+      toCheck = n;
+    }
   }
   let schema = null;
   try { schema = buildValueSchema(fieldDef); }
