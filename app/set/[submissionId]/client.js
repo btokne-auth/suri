@@ -47,7 +47,8 @@ export default function SetClient() {
     try {
       const r = await fetch('/api/submissions/' + encodeURIComponent(id));
       const j = await r.json();
-      if (r.ok) { setData(j); setMsg(''); }
+      // Do not wipe reviewer messages: the 3s poll runs constantly.
+      if (r.ok) { setData(j); setMsg((prev) => (prev === 'Loading...' ? '' : prev)); }
       else setMsg(j.error || 'Could not load.');
     } catch { setMsg('Could not load. Check internet.'); }
   }
