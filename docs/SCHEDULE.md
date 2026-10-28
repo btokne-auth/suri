@@ -37,7 +37,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Where we are now
 
-**Day 1 (Oct 27, evening), step 6: checks code done locally, live proof next**
+**Day 2 (Oct 28, morning), step 7: reviewer view**
 - [x] Step 5 upload pipeline done (profile, submissions, upload + magic-byte checks + limits, background reading reading to needs_review on its own, owner-only image URL; phone proof passed; dev-only test page 404s in production)
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
@@ -53,8 +53,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 3 settings + rules done (3 doc types, process file, Zod validation, 7/7 tests pass)
 - [x] Step 4 database, storage, sessions done (9 tables, SELECT-only RLS + grants, private uploads bucket 10 MB, anonymous sign-in; isolation passed locally both directions, live /api/session OK + /api/test-seed 404)
 - [x] Step 5 upload pipeline done (file checks, limits, background reading, statuses); phone proof passed locally
-- [x] Step 6 code done locally (names.js, run-checks + requirement gate, /start /profile /set pages + set API; 24/24 tests green, build passes); pending live proof on phone + laptop
-- [ ] Next: step 6 live proof (non-Linawan ID stopped, mismatched birth date flagged), then step 7 reviewer view
+- [x] Step 6 done (names.js, run-checks + requirement gate, /start /profile /set pages + set API; 24/24 tests green, build passes; done-when passed on localhost in private windows)
+- [ ] Next: step 7 reviewer view (image beside fields, flags, approve / correct / reject with validation, review log)
 - [ ] Check the Billing page usage every night
 
 ## Daily log
@@ -67,3 +67,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 1 (Oct 27, Noon):** Step 3 done: 3 doc-type settings + Linawan process file (data only, flat address_city_municipality), Zod validation (validateExtraction returns ok/fields/issues, bad values flagged never fixed), tests 7/7 pass. **Next:** step 4 database/storage/sessions.
 - **Day 1 (Oct 27, Noon part 2):** Step 4 local isolation passed (Brave/Opera/Edge): each browser sees its own row only, cross-read 0 rows both ways, browser INSERT blocked. Fix: auto-expose off left service_role with no table privileges, granted in SQL editor, saved as 0002_grant_service_role.sql. Test helpers (/api/test-seed, /test-isolation) are dev-only (404 in production). Live check passed: /api/session returns {"user_id":null}, POST /api/test-seed returns 404 Not found. Step 4 done. **Next:** step 5 upload pipeline.
 - **Day 1 (Oct 27, evening part 2):** Step 6 code done locally: Filipino name rule (Ma.=Maria, Sto./Sta., Jr./Sr./II/III, dela Cruz variants), run-checks + Linawan requirement gate (unreadable=retake, never fail), /start /profile /set checklist + work log, upload unlock after valid_id passes; 24/24 tests green, build passes. Added cross-refresh so each finished read re-checks the other docs. **Next:** live proof on phone + laptop, then commit + step 7.
+- **Day 2 (Oct 28, morning):** Step 6 done-when passed on localhost in private windows. Test A: valid ID + birth certificate (both SAMPLE, 2007) both 'ready', 8 match / 0 mismatch, 1 older upload ignored. Test B: other-town ID (Maburol) -> 'This program is for Linawan residents.', other slots stay locked. Test C: old 2019 birth certificate -> 'Birth date is different: 2019-03-14 vs 2007-03-14' on both rows. Note for step 7: when the requirement fails, the valid ID row still says 'ready — Looks ready'; reword to something like 'Read OK — address is outside Linawan'. Modal credits ($100) also granted, kept in reserve. **Next:** step 7 reviewer view.
