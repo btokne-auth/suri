@@ -1,21 +1,21 @@
 // app/profile/client.js
 // Step 6: profile form. Server is the real check; browser mirrors messages.
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 const INP = { display: 'block', width: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4 };
 const BTN = { padding: '14px 20px', minHeight: 48, fontSize: 17, width: '100%', marginTop: 16 };
 const ERR = { color: '#a00', margin: '4px 0 12px' };
 export default function ProfileClient() {
-  const [sub, setSub] = useState('');
+  const [sub] = useState(() => {
+    try {
+      if (typeof window === 'undefined') return '';
+      const q = new URLSearchParams(window.location.search);
+      return q.get('submission') || '';
+    } catch { return ''; }
+  });
   const [form, setForm] = useState({ given_name: '', middle_name: '', surname: '', suffix: '', birth_date: '', city_municipality: '' });
   const [errs, setErrs] = useState({});
   const [msg, setMsg] = useState('');
-  useEffect(() => {
-    try {
-      const q = new URLSearchParams(window.location.search);
-      setSub(q.get('submission') || '');
-    } catch { setSub(''); }
-  }, []);
   function set(k, v) { setForm((p) => ({ ...p, [k]: v })); }
   async function save(e) {
     e.preventDefault();

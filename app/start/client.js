@@ -1,18 +1,33 @@
 // app/start/client.js
 // Step 6: process picker + Start (anonymous session). Plain, phone-first.
+// Step 7: lists ALL processes from GET /api/processes (registry).
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 const BTN = { padding: '14px 20px', minHeight: 48, fontSize: 17, width: '100%' };
 export default function StartClient() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [processes, setProcesses] = useState([]);
+  const [picked, setPicked] = useState('');
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch('/api/processes');
+        const j = await r.json();
+        const list = Array.isArray(j.processes) ? j.processes : [];
+        setProcesses(list);
+        if (list.length > 0) setPicked(list[0].id);
+      } catch { setProcesses([]); }
+    })();
+  }, []);
   async function start() {
     setBusy(true);
     setMsg('Starting...');
     try {
+      if (!picked) { setMsg('Choose a process first.'); setBusy(false); return; }
       const s = await fetch('/api/session', { method: 'POST' }).then((r) => r.json());
       if (!s.user_id) { setMsg('Could not start a session. Please try again.'); setBusy(false); return; }
-      const r = await fetch('/api/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ process_id: 'linawan_scholarship_intake' }) });
+      const r = await fetch('/api/submissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ process_id: picked }) });
       const j = await r.json();
       if (!r.ok || !j.submission_id) { setMsg('Could not start. Please try again.'); setBusy(false); return; }
       window.location.href = '/profile?submission=' + encodeURIComponent(j.submission_id);
@@ -23,14 +38,18 @@ export default function StartClient() {
       <h1>Suri</h1>
       <p>Check your papers before the office does.</p>
       <h2>Choose a process</h2>
-      <label style={{ display: 'block', border: '1px solid #888', borderRadius: 8, padding: 12 }}>
-        <input type="radio" checked readOnly /> Linawan College scholarship document intake (sample)
-      </label>
+      {processes.length === 0 && <p>Loading processes...</p>}
+      {processes.map((p) => (
+        <label key={p.id} style={{ display: 'block', border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+          <input type="radio" name="process" checked={picked === p.id} onChange={() => setPicked(p.id)} /> {p.label}
+        </label>
+      ))}
       <div style={{ marginTop: 16 }}>
-        <button type="button" onClick={start} disabled={busy} style={BTN}>Start</button>
+        <button type="button" onClick={start} disabled={busy || !picked} style={BTN}>Start</button>
       </div>
       {msg && <p>{msg}</p>}
       <p><small>Sample documents only. Never upload a real ID.</small></p>
     </main>
   );
 }
+

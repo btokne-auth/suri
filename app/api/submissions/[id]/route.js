@@ -1,13 +1,14 @@
 // app/api/submissions/[id]/route.js
 // Step 6: GET set view data (owner only).
-// Returns submission + per-type latest document + checks + work log.
+// Step 7: registry lookup + reviewer data + fail-wording fix.
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const linawan = require('../../../../lib/processes/linawan-scholarship-intake.js');
+const { getProcess } = require('../../../../lib/processes/index.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
+const { buildRequirementFailReason } = require('../../../../lib/checks/run-checks.js');
 export async function GET(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -21,8 +22,12 @@ export async function GET(request, ctx) {
   if (!sub) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   const { data: owner } = await admin.from('submissions').select('user_id').eq('id', sid).maybeSingle();
   if (!owner || owner.user_id !== userId) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
-  const proc = sub.process_id === linawan.id ? linawan : null;
+  const proc = getProcess(sub.process_id);
   if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const req = proc.requirement || null;
+  const reqDoc = req ? req.document : null;
+  const reqDef = reqDoc ? getDocumentType(reqDoc) : null;
+  const reqLabel = reqDef ? reqDef.label : reqDoc;
   const { data: docs } = await admin.from('documents').select('id,doc_type,status,created_at').eq('submission_id', sid).order('created_at', { ascending: false });
   const list = docs || [];
   // Newest upload per type wins ("replaced"): older uploads stay in the
@@ -35,20 +40,34 @@ export async function GET(request, ctx) {
   const activeIds = new Set(Object.values(byType).map((d) => d.id));
   const docIds = Array.from(activeIds);
   let checks = [];
+  let fieldsByDoc = {};
+  let reviews = [];
   if (docIds.length > 0) {
     const { data: cr } = await admin.from('check_results').select('document_id,compared_document_id,field_key,rule,result,reason').in('document_id', docIds);
     checks = cr || [];
+    const { data: ef } = await admin.from('extracted_fields').select('document_id,field_key,value_text,confidence,unreadable,found_on_page').in('document_id', docIds);
+    for (const f of (ef || [])) {
+      if (!fieldsByDoc[f.document_id]) fieldsByDoc[f.document_id] = [];
+      fieldsByDoc[f.document_id].push(f);
+    }
+    const { data: ra } = await admin.from('review_actions').select('document_id,action,field_key,old_value,new_value,created_at').in('document_id', docIds).order('created_at', { ascending: true });
+    reviews = ra || [];
   }
   const { data: logs } = await admin.from('work_log').select('step_type,message,created_at').eq('submission_id', sid).order('created_at', { ascending: true }).limit(100);
+  const workLog = logs || [];
+  let overrideNote = null;
+  for (let i = workLog.length - 1; i >= 0; i--) {
+    if (workLog[i].step_type === 'requirement_override') { overrideNote = workLog[i].message; break; }
+  }
   const rows = [];
-  const gateDoc = byType['valid_id'] || null;
-  const gateOk = gateDoc && (gateDoc.status === 'needs_review' || gateDoc.status === 'approved') && sub.status !== 'requirement_not_met';
+  const gateDoc = reqDoc ? (byType[reqDoc] || null) : null;
+  const gateOk = reqDoc ? (gateDoc && (gateDoc.status === 'needs_review' || gateDoc.status === 'approved') && sub.status !== 'requirement_not_met') : true;
   for (const t of proc.documents) {
     const def = getDocumentType(t);
     const d = byType[t] || null;
-    const locked = t !== 'valid_id' && !gateOk;
+    const locked = reqDoc ? (t !== reqDoc && !gateOk) : false;
     let action = 'upload';
-    let reason = locked ? (sub.status === 'requirement_not_met' ? proc.requirement.message : 'Upload your valid ID first.') : 'Not uploaded yet.';
+    let reason = locked ? (sub.status === 'requirement_not_met' ? (req.message || 'Requirement not met.') : ('Upload your ' + reqLabel + ' first.')) : 'Not uploaded yet.';
     let status = d ? d.status : 'missing';
     if (d) {
       const mine = checks.filter((c) => c.document_id === d.id);
@@ -73,12 +92,19 @@ export async function GET(request, ctx) {
       } else if (hasInvalid) {
         action = 'retake';
         reason = 'Could not compare, please retake.';
+      } else if (reqDoc && t === reqDoc && sub.status === 'requirement_not_met') {
+        action = 'read_ok';
+        reason = buildRequirementFailReason(proc);
       } else {
         action = 'ready';
         reason = d.status === 'approved' ? 'Approved by reviewer.' : 'Looks ready. A person still decides.';
       }
+      if (d.status === 'rejected') {
+        action = 'rejected';
+        reason = 'Rejected by reviewer. See work log.';
+      }
     }
     rows.push({ doc_type: t, label: def ? def.label : t, locked, status, action, reason, document_id: d ? d.id : null });
   }
-  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: proc.requirement.message }, rows, checks, work_log: logs || [] });
+  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: req ? (req.message || null) : null, requirement_document: reqDoc, override_note: overrideNote }, rows, checks, fields: fieldsByDoc, review_actions: reviews, work_log: workLog });
 }

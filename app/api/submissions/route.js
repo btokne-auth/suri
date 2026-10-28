@@ -1,8 +1,9 @@
 // app/api/submissions/route.js
 //
 // Build order step 5: POST /api/submissions.
-// Creates or returns the visitor's submission for a process_id
-// (linawan_scholarship_intake). Server only: getClaims() + admin write.
+// Step 7: process-agnostic via lib/processes registry.
+// Creates or returns the visitor's submission for a process_id.
+// Server only: getClaims() + admin write.
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -10,11 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const linawan = require("../../../lib/processes/linawan-scholarship-intake.js");
-
-const KNOWN_PROCESSES = {
-  [linawan.id]: linawan,
-};
+const { getProcess } = require("../../../lib/processes/index.js");
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -32,7 +29,7 @@ export async function POST(request) {
   }
 
   const processId = body?.process_id;
-  if (processId !== linawan.id || !KNOWN_PROCESSES[processId]) {
+  if (typeof processId !== "string" || !getProcess(processId)) {
     return NextResponse.json({ error: "Unknown process." }, { status: 400 });
   }
 

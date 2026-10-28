@@ -17,8 +17,9 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 | 5 | **Upload pipeline:** upload with file type/size checks (M), per-visitor limit + daily cap (M), background reading, statuses | Wed–Thu Oct 28–29 | Upload from a phone → status changes from `reading` to `needs_review` on its own |
 | 6 | **Profile, checks, requirement check:** profile form, Filipino name rules, mismatch checks, cross-document checks, requirement check, readiness view (set-first), work log | Thu Oct 29 | A non-Linawan ID is stopped; a mismatched birth date is flagged. **Scope freeze tonight** |
 | 7 | **Reviewer view (demo mode switch):** image beside fields, flags, approve / correct / reject with validation, review log | Fri Oct 30 | The whole Must flow works on the live URL, on phone and laptop. **Milestone: submittable entry** |
+| 7b | **Receipt check process (settings only):** receipt document + process settings prove the engine is process-agnostic | Fri Oct 30 | Linawan flow still passes; receipt process lists on /start with its own unlock rule |
 | 8 | **Proof:** sample documents + answer key, eval script, plain OCR vs Suri scorecard | Sat Oct 31 | A table of real accuracy numbers |
-| 9 | **Should features:** photo quality / retake, wrong-document check, Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, receipt sample, security pass | Sun–Mon Nov 1–2 | Each tested on the live URL; eval rerun after SAM |
+| 9 | **Should features:** photo quality / retake, wrong-document check, Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, security pass | Sun–Mon Nov 1–2 | Each tested on the live URL; eval rerun after SAM |
 | 10 | **Polish:** README, logo files + favicon, scan beam, isometric SVG hero, light mode toggle; Could items only if time is left | Tue Nov 3 | README done; nothing broken. **Feature freeze tonight** |
 | 11 | **Ship:** record and edit the video, secret scan, make the repo public, submit | Wed Nov 4 | Submitted, with a screenshot of the confirmation |
 | — | Official deadline (buffer only) | Thu Nov 5, 10 AM | |

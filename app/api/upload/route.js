@@ -14,7 +14,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { sniffFileType } = require('../../../lib/file-type.js');
 const { getDocumentType } = require('../../../lib/documents/index.js');
-const linawan = require('../../../lib/processes/linawan-scholarship-intake.js');
+const { getProcess } = require('../../../lib/processes/index.js');
 export const maxDuration = 60;
 const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
 const BUCKET = 'uploads';
@@ -30,21 +30,29 @@ export async function POST(request) {
   const docType = form.get('doc_type');
   const file = form.get('file');
   const admin = createAdminClient();
-  const { data: sub, error: se } = await admin.from('submissions').select('id,user_id,status').eq('id', typeof submissionId === 'string' ? submissionId : '').maybeSingle();
+  const { data: sub, error: se } = await admin.from('submissions').select('id,user_id,status,process_id').eq('id', typeof submissionId === 'string' ? submissionId : '').maybeSingle();
   if (se || !sub || sub.user_id !== userId) return NextResponse.json({ error: "This submission isn't yours." }, { status: 403 });
-  const docs = linawan.documents || [];
+  const proc = getProcess(sub.process_id);
+  if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const docs = proc.documents || [];
   if (typeof docType !== 'string' || !docs.includes(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
-  if (docType !== 'valid_id') {
-    if (sub.status === 'requirement_not_met') return NextResponse.json({ error: linawan.requirement.message }, { status: 403 });
-    // Newest valid_id wins: older uploads are "replaced" and never unlock.
-    const { data: newestId } = await admin.from('documents').select('id,status').eq('submission_id', submissionId).eq('doc_type', 'valid_id').order('created_at', { ascending: false }).limit(1);
-    const gate = newestId && newestId.length > 0 ? newestId[0] : null;
+  // Upload unlock rule uses process.requirement.document.
+  // A process with no requirement unlocks everything.
+  const req = proc.requirement || null;
+  const reqDoc = req ? req.document : null;
+  const reqDef = reqDoc ? getDocumentType(reqDoc) : null;
+  const reqLabel = reqDef ? reqDef.label : reqDoc;
+  if (req && docType !== reqDoc) {
+    if (sub.status === 'requirement_not_met') return NextResponse.json({ error: req.message || 'Requirement not met.' }, { status: 403 });
+    // Newest requirement document wins: older uploads are "replaced" and never unlock.
+    const { data: newestReq } = await admin.from('documents').select('id,status').eq('submission_id', submissionId).eq('doc_type', reqDoc).order('created_at', { ascending: false }).limit(1);
+    const gate = newestReq && newestReq.length > 0 ? newestReq[0] : null;
     if (gate && (gate.status === 'needs_review' || gate.status === 'approved')) {
       // Gate passed: other slots unlock.
     } else if (gate && (gate.status === 'uploaded' || gate.status === 'reading')) {
-      return NextResponse.json({ error: 'Your ID is still being checked. Please wait a moment.' }, { status: 409 });
+      return NextResponse.json({ error: 'Your ' + reqLabel + ' is still being checked. Please wait a moment.' }, { status: 409 });
     } else {
-      return NextResponse.json({ error: 'Upload your valid ID first. Other documents unlock after it passes.' }, { status: 403 });
+      return NextResponse.json({ error: 'Upload your ' + reqLabel + ' first. Other documents unlock after it passes.' }, { status: 403 });
     }
   }
   if (!getDocumentType(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
