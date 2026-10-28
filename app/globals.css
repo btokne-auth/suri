@@ -23,4 +23,123 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* Step 7 phone layout (layout only, no colors yet): one column below 768px,
+   two columns at 768px and up. No sideways scrolling at 360px. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.set-page,
+.start-page,
+.profile-page {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  font-family: system-ui;
+  font-size: 16px;
+  overflow-wrap: break-word;
+}
+
+.start-page,
+.profile-page {
+  max-width: 560px;
+}
+
+.set-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.set-docs {
+  flex: 2 1 320px;
+  min-width: 0;
+}
+
+.set-log {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.review-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.review-pair > div {
+  flex: 1 1 100%;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Reviewer view: image on top at full width, fields below it under 768px;
+   image beside fields at 768px and up. */
+@media (min-width: 768px) {
+  .review-pair {
+    flex-direction: row;
+  }
+
+  .review-pair > div {
+    flex: 1 1 220px;
+    width: auto;
+  }
+}
+
+.set-page p,
+.set-page li,
+.set-page label,
+.start-page p,
+.start-page li,
+.start-page label,
+.profile-page p,
+.profile-page li,
+.profile-page label {
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.set-page button,
+.start-page button,
+.profile-page button {
+  min-height: 44px;
+  font-size: 16px;
+}
+
+.set-page input[type="file"],
+.start-page input[type="file"],
+.profile-page input[type="file"] {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .set-wrap {
+    flex-direction: column;
+  }
+
+  .set-docs,
+  .set-log {
+    flex: 1 1 100%;
+    width: 100%;
+  }
 }

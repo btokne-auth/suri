@@ -34,13 +34,13 @@ export default function StartClient() {
     } catch { setMsg('Could not start. Please try again.'); setBusy(false); }
   }
   return (
-    <main style={{ padding: 16, maxWidth: 560, margin: '0 auto', fontFamily: 'system-ui' }}>
+    <main className="start-page">
       <h1>Suri</h1>
       <p>Check your papers before the office does.</p>
       <h2>Choose a process</h2>
       {processes.length === 0 && <p>Loading processes...</p>}
       {processes.map((p) => (
-        <label key={p.id} style={{ display: 'block', border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+        <label key={p.id} style={{ display: 'block', border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 8, minHeight: 44 }}>
           <input type="radio" name="process" checked={picked === p.id} onChange={() => setPicked(p.id)} /> {p.label}
         </label>
       ))}

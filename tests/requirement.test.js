@@ -3,7 +3,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { checkRequirementCity, compareSameDate, buildCheckRows, newestByCreatedAt, newestPerType, decideRequirement } = require('../lib/checks/run-checks');
+const { checkRequirementCity, compareSameDate, buildCheckRows, comparedLabel, newestByCreatedAt, newestPerType, decideRequirement } = require('../lib/checks/run-checks');
 const linawan = require('../lib/processes/linawan-scholarship-intake');
 
 function readable(value) {
@@ -114,6 +114,37 @@ describe('requirement check', () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].result, 'match');
     assert.equal(rows[0].compared_document_id, 'bc-new');
+  });
+
+  it('compared label: null means the profile', () => {
+    assert.equal(comparedLabel(null, {}), 'your profile');
+    assert.equal(comparedLabel(undefined, {}), 'your profile');
+  });
+
+  it('compared label uses the settings label, not a hard-coded name', () => {
+    assert.equal(comparedLabel('bc-1', { 'bc-1': 'birth_certificate' }), 'Birth certificate');
+    assert.equal(comparedLabel('id-9', { 'id-9': 'valid_id' }), "Valid ID (voter's ID style)");
+  });
+
+  it('compared label falls back for unknown documents', () => {
+    assert.equal(comparedLabel('zzz', {}), 'the other document');
+    assert.equal(comparedLabel('zzz', { 'zzz': 'nope' }), 'the other document');
+  });
+
+  it('stored reasons stay pure: no baked-in "same as"', () => {
+    const rows = buildCheckRows({
+      docType: 'valid_id',
+      documentId: 'id-1',
+      myFields: {
+        full_name: readable('Maria Santos Dela Cruz'),
+        date_of_birth: readable('2015-06-15'),
+      },
+      profileFullName: 'Maria Santos Dela Cruz',
+      profileDob: '2015-06-15',
+      others: [{ docId: 'bc-1', docType: 'birth_certificate', created_at: '2026-10-27T11:00:00Z', fields: { full_name: readable('Maria Santos Dela Cruz'), date_of_birth: readable('2015-06-15') } }],
+    });
+    assert.ok(rows.length >= 2);
+    for (const r of rows) assert.ok(!/same as/i.test(r.reason), 'reason must not contain "same as": ' + r.reason);
   });
 
   it('unreadable side is skipped, never mismatch', () => {

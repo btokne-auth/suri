@@ -37,7 +37,7 @@ export default function ProfileClient() {
     } catch { setMsg('Could not save. Please try again.'); }
   }
   return (
-    <main style={{ padding: 16, maxWidth: 560, margin: '0 auto', fontFamily: 'system-ui' }}>
+    <main className="profile-page">
       <h1>Your details</h1>
       <p>Type what is on your documents. Suri compares them to this.</p>
       <form onSubmit={save} noValidate>

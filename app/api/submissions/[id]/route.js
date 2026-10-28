@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { getProcess } = require('../../../../lib/processes/index.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
-const { buildRequirementFailReason } = require('../../../../lib/checks/run-checks.js');
+const { buildRequirementFailReason, comparedLabel } = require('../../../../lib/checks/run-checks.js');
 export async function GET(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -44,7 +44,11 @@ export async function GET(request, ctx) {
   let reviews = [];
   if (docIds.length > 0) {
     const { data: cr } = await admin.from('check_results').select('document_id,compared_document_id,field_key,rule,result,reason').in('document_id', docIds);
-    checks = cr || [];
+    // Attach the "same as X" label from settings: null means the profile,
+    // otherwise the compared document's type label (never hard-coded).
+    const typeByDocId = {};
+    for (const d of list) { if (d && d.id && !typeByDocId[d.id]) typeByDocId[d.id] = d.doc_type; }
+    checks = (cr || []).map((c) => ({ ...c, compared_label: comparedLabel(c.compared_document_id, typeByDocId) }));
     const { data: ef } = await admin.from('extracted_fields').select('document_id,field_key,value_text,confidence,unreadable,found_on_page').in('document_id', docIds);
     for (const f of (ef || [])) {
       if (!fieldsByDoc[f.document_id]) fieldsByDoc[f.document_id] = [];

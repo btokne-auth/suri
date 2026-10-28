@@ -5,7 +5,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 const BTN = { padding: '12px 16px', minHeight: 48, fontSize: 16, width: '100%' };
-const SMALLBTN = { padding: '10px 12px', minHeight: 44, fontSize: 15, marginRight: 8, marginTop: 8 };
+const SMALLBTN = { padding: '10px 12px', minHeight: 44, fontSize: 16, marginRight: 8, marginTop: 8 };
 const RESCOLOR = { match: '#0a0', check: '#a60', mismatch: '#a00', invalid: '#a00' };
 async function shrinkForUpload(f) {
   if (!f || f.type === 'application/pdf' || !f.type.startsWith('image/')) return f;
@@ -131,19 +131,53 @@ export default function SetClient() {
     } catch { setMsg('Override failed. Try again.'); }
     setReviewBusy(null);
   }
-  if (!data) return (<main style={{ padding: 16, maxWidth: 960, margin: '0 auto', fontFamily: 'system-ui' }}><h1>Your checklist</h1><p>{msg}</p></main>);
+  if (!data) return (<main className="set-page"><h1>Your checklist</h1><p>{msg}</p></main>);
   const fieldsMap = data.fields || {};
   const checksAll = data.checks || [];
   const reviewsAll = data.review_actions || [];
+  const docTypeById = {};
+  for (const row of (data.rows || [])) {
+    if (row && row.document_id && !docTypeById[row.document_id]) docTypeById[row.document_id] = row.doc_type;
+  }
+  // "Uploaded. Reading..." is a guess at upload time: hide it as soon as
+  // no row is still reading.
+  const stillReading = (data.rows || []).some((row) => row && (row.status === 'uploaded' || row.status === 'reading'));
+  const showMsg = msg && msg !== 'Loading...' && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
+  // Each check says what it compared against: "same as your profile" or
+  // "same as {label}". The label arrives on each check from the API
+  // (document settings, never hard-coded); the fallback below rebuilds it
+  // from the row labels for the same result.
+  const labelByType = {};
+  for (const row of (data.rows || [])) {
+    if (row && row.doc_type && row.label && !labelByType[row.doc_type]) labelByType[row.doc_type] = row.label;
+  }
+  function comparedLabelText(c) {
+    if (c && c.compared_label) return c.compared_label;
+    if (!c || !c.compared_document_id) return 'your profile';
+    const t = docTypeById[c.compared_document_id];
+    return (t && labelByType[t]) || 'the other document';
+  }
+  // Rows saved earlier may end with a baked-in "— same as ...": strip it so
+  // the line never says it twice.
+  function cleanReason(reason) {
+    return String(reason || '').replace(/\s*[—–-]\s*same as [^.]*\.?\s*$/i, '').trim();
+  }
+  function checkLine(c) {
+    return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b> — same as {comparedLabelText(c)}. {cleanReason(c.reason)}</span>);
+  }
+  function checksFor(docId) {
+    if (!docId) return [];
+    return checksAll.filter((c) => c.document_id === docId);
+  }
   return (
-    <main style={{ padding: 16, maxWidth: 960, margin: '0 auto', fontFamily: 'system-ui' }}>
+    <main className="set-page">
       <h1>Your checklist</h1>
       <p>{data.process.label}</p>
       <div style={{ marginBottom: 12 }}>
         <button type="button" onClick={() => setView('applicant')} disabled={view === 'applicant'} style={SMALLBTN}>Applicant</button>
         <button type="button" onClick={() => setView('reviewer')} disabled={view === 'reviewer'} style={SMALLBTN}>Reviewer</button>
       </div>
-      {msg && msg !== 'Loading...' && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{msg}</b></p>)}
+      {showMsg && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{msg}</b></p>)}
       {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{data.process.requirement_message}</b> A person still decides.</p>)}
       {data.process.override_note && (<p style={{ border: '1px solid #888', padding: 12 }}><b>Overridden by reviewer:</b> {data.process.override_note} A person decides.</p>)}
       {view === 'reviewer' && data.submission.status === 'requirement_not_met' && (
@@ -154,15 +188,20 @@ export default function SetClient() {
           <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override'} style={SMALLBTN}>{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
         </div>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
+      <div className="set-wrap">
         {view === 'applicant' && (
-        <section style={{ flex: '2 1 320px', minWidth: 0 }}>
+        <section className="set-docs">
           <h2>Documents</h2>
           {(data.rows || []).map((row) => (
             <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <h3>{row.label}</h3>
               <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
               <p>Action: <b>{row.action}</b> — {row.reason}</p>
+              {checksFor(row.document_id).length > 0 && (
+                <ul>
+                  {checksFor(row.document_id).map((c, i) => (<li key={i}>{checkLine(c)}</li>))}
+                </ul>
+              )}
               {row.locked ? (<p>{row.reason}</p>) : (
                 <div>
                   <label style={{ display: 'block', marginTop: 8 }}>Photo or PDF: <input ref={(el) => { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" style={{ display: 'block', marginTop: 8, minHeight: 44 }} /></label>
@@ -174,7 +213,7 @@ export default function SetClient() {
         </section>
         )}
         {view === 'reviewer' && (
-        <section style={{ flex: '2 1 320px', minWidth: 0 }}>
+        <section className="set-docs">
           <h2>Reviewer</h2>
           {(data.rows || []).map((row) => {
             const docFields = row.document_id ? (fieldsMap[row.document_id] || []) : [];
@@ -186,11 +225,11 @@ export default function SetClient() {
               <p>Status: <b>{row.status}</b> — {row.reason}</p>
               {!row.document_id && <p>(not uploaded yet)</p>}
               {row.document_id && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+              <div className="review-pair">
+                <div>
                   {imgUrls[row.document_id] ? (<img src={imgUrls[row.document_id]} alt={row.label} style={{ width: '100%', height: 'auto', border: '1px solid #888' }} />) : (<button type="button" onClick={() => loadImage(row.document_id)} style={SMALLBTN}>Load image</button>)}
                 </div>
-                <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+                <div>
                   {docFields.length === 0 && <p>(no fields read yet)</p>}
                   {docFields.map((f) => {
                     const fr = docChecks.filter((c) => c.field_key === f.field_key);
@@ -199,7 +238,7 @@ export default function SetClient() {
                     <div key={f.field_key} style={{ borderTop: '1px solid #ccc', paddingTop: 8, marginTop: 8 }}>
                       <p><b>{f.field_key}</b>: {f.unreadable ? 'unreadable' : (f.value_text ?? '(empty)')} <small>({f.confidence})</small></p>
                       {fr.length === 0 && <p><small>no checks</small></p>}
-                      {fr.map((c, i) => (<p key={i}><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b> — {c.reason}</p>))}
+                      {fr.map((c, i) => (<p key={i}>{checkLine(c)}</p>))}
                       {correcting[ck] ? (
                         <div>
                           <label>New value: <input value={newValues[ck] || ''} onChange={(e) => setNewValues((p) => ({ ...p, [ck]: e.target.value }))} style={{ display: 'block', width: '100%', padding: 10, minHeight: 44, fontSize: 16, marginTop: 4 }} /></label>
@@ -232,7 +271,7 @@ export default function SetClient() {
           })}
         </section>
         )}
-        <aside style={{ flex: '1 1 260px', minWidth: 0 }}>
+        <aside className="set-log">
           <h2>Suri&apos;s work log</h2>
           {(data.work_log || []).length === 0 && <p>(nothing yet)</p>}
           <ol>
