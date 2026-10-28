@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { getProcess } = require('../../../../../lib/processes/index.js');
+const { isOwnedBy } = require('../../../../../lib/review-auth.js');
 export async function POST(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -24,7 +25,7 @@ export async function POST(request, ctx) {
   if (note.length > 200) return NextResponse.json({ error: 'Keep the note under 200 characters.' }, { status: 400 });
   const admin = createAdminClient();
   const { data: sub } = await admin.from('submissions').select('id,user_id,process_id,status').eq('id', sid).maybeSingle();
-  if (!sub || sub.user_id !== userId) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  if (!isOwnedBy(sub, userId)) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (sub.status !== 'requirement_not_met') return NextResponse.json({ error: 'Nothing to override.' }, { status: 400 });
   const proc = getProcess(sub.process_id);
   if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });

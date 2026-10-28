@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 const { getDocumentType } = require('../../../../../lib/documents/index.js');
 const { buildValueSchema } = require('../../../../../lib/validation.js');
 const { runChecksForDocument } = require('../../../../../lib/checks/run-checks.js');
+const { isOwnedBy } = require('../../../../../lib/review-auth.js');
 export async function POST(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -31,7 +32,7 @@ export async function POST(request, ctx) {
   const { data: doc } = await admin.from('documents').select('id,doc_type,submission_id,status').eq('id', docId).maybeSingle();
   if (!doc) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   const { data: sub } = await admin.from('submissions').select('id,user_id').eq('id', doc.submission_id).maybeSingle();
-  if (!sub || sub.user_id !== userId) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
+  if (!isOwnedBy(sub, userId)) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (action === 'approve' || action === 'reject') {
     const next = action === 'approve' ? 'approved' : 'rejected';
     await admin.from('documents').update({ status: next }).eq('id', docId);
