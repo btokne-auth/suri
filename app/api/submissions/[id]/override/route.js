@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { getProcess } = require('../../../../../lib/processes/index.js');
+const { resolveProcess } = require('../../../../../lib/processes/resolve.js');
 const { isOwnedBy } = require('../../../../../lib/review-auth.js');
 export async function POST(request, ctx) {
   const supabase = await createClient();
@@ -27,8 +27,10 @@ export async function POST(request, ctx) {
   const { data: sub } = await admin.from('submissions').select('id,user_id,process_id,status').eq('id', sid).maybeSingle();
   if (!isOwnedBy(sub, userId)) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (sub.status !== 'requirement_not_met') return NextResponse.json({ error: 'Nothing to override.' }, { status: 400 });
-  const proc = getProcess(sub.process_id);
-  if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  // Step 7c Part 2: builtins + owned saved_* (wrong owner -> Unknown process).
+  const bundle = await resolveProcess(admin, sub.process_id, userId);
+  if (!bundle) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const proc = bundle.def;
   await admin.from('submissions').update({ status: 'in_progress' }).eq('id', sid);
   await admin.from('work_log').insert({ submission_id: sid, step_type: 'requirement_override', message: note.slice(0, 200) });
   try {

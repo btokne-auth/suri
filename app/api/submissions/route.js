@@ -11,7 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { getProcess } = require("../../../lib/processes/index.js");
+const { resolveProcess } = require("../../../lib/processes/resolve.js");
 
 export async function POST(request) {
   const supabase = await createClient();
@@ -29,11 +29,16 @@ export async function POST(request) {
   }
 
   const processId = body?.process_id;
-  if (typeof processId !== "string" || !getProcess(processId)) {
+  if (typeof processId !== "string" || !processId) {
     return NextResponse.json({ error: "Unknown process." }, { status: 400 });
   }
 
   const admin = createAdminClient();
+  // Step 7c Part 2: builtins + owned saved_* (wrong owner -> Unknown process).
+  const bundle = await resolveProcess(admin, processId, userId);
+  if (!bundle) {
+    return NextResponse.json({ error: "Unknown process." }, { status: 400 });
+  }
   const { data: existing, error: selError } = await admin
     .from("submissions")
     .select("id")

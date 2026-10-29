@@ -13,8 +13,7 @@ import { runReading } from '@/lib/read-background';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { sniffFileType } = require('../../../lib/file-type.js');
-const { getDocumentType } = require('../../../lib/documents/index.js');
-const { getProcess } = require('../../../lib/processes/index.js');
+const { resolveProcess, resolveDocumentType } = require('../../../lib/processes/resolve.js');
 export const maxDuration = 60;
 const MAX_BYTES = Math.floor(4.5 * 1024 * 1024);
 const BUCKET = 'uploads';
@@ -32,15 +31,17 @@ export async function POST(request) {
   const admin = createAdminClient();
   const { data: sub, error: se } = await admin.from('submissions').select('id,user_id,status,process_id').eq('id', typeof submissionId === 'string' ? submissionId : '').maybeSingle();
   if (se || !sub || sub.user_id !== userId) return NextResponse.json({ error: "This submission isn't yours." }, { status: 403 });
-  const proc = getProcess(sub.process_id);
-  if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  // Step 7c Part 2: builtins + owned saved_* (wrong owner -> Unknown process).
+  const bundle = await resolveProcess(admin, sub.process_id, userId);
+  if (!bundle) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const proc = bundle.def;
   const docs = proc.documents || [];
   if (typeof docType !== 'string' || !docs.includes(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
   // Upload unlock rule uses process.requirement.document.
   // A process with no requirement unlocks everything.
   const req = proc.requirement || null;
   const reqDoc = req ? req.document : null;
-  const reqDef = reqDoc ? getDocumentType(reqDoc) : null;
+  const reqDef = reqDoc ? resolveDocumentType(bundle, reqDoc) : null;
   const reqLabel = reqDef ? reqDef.label : reqDoc;
   if (req && docType !== reqDoc) {
     if (sub.status === 'requirement_not_met') return NextResponse.json({ error: req.message || 'Requirement not met.' }, { status: 403 });
@@ -55,7 +56,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Upload your ' + reqLabel + ' first. Other documents unlock after it passes.' }, { status: 403 });
     }
   }
-  if (!getDocumentType(docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
+  if (!resolveDocumentType(bundle, docType)) return NextResponse.json({ error: 'Unknown document type.' }, { status: 400 });
   if (!file || typeof file.arrayBuffer !== 'function') return NextResponse.json({ error: 'No file. Please choose a photo or PDF.' }, { status: 400 });
   if (file.size > MAX_BYTES) return NextResponse.json({ error: 'This file is too large. Try a smaller photo.' }, { status: 413 });
   if (file.size <= 0) return NextResponse.json({ error: 'Empty file. Please try again.' }, { status: 400 });

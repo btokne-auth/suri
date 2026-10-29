@@ -1,13 +1,13 @@
 // app/api/submissions/[id]/route.js
 // Step 6: GET set view data (owner only).
 // Step 7: registry lookup + reviewer data + fail-wording fix.
+// Step 7c Part 2: resolve builtins + owned saved_* via resolveProcess.
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { getProcess } = require('../../../../lib/processes/index.js');
-const { getDocumentType } = require('../../../../lib/documents/index.js');
+const { resolveProcess, resolveDocumentType } = require('../../../../lib/processes/resolve.js');
 const { buildRequirementFailReason, comparedLabel } = require('../../../../lib/checks/run-checks.js');
 const { isStaleReading, READING_TIMEOUT_MESSAGE } = require('../../../../lib/reading-timeout.js');
 export async function GET(request, ctx) {
@@ -23,11 +23,12 @@ export async function GET(request, ctx) {
   if (!sub) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   const { data: owner } = await admin.from('submissions').select('user_id').eq('id', sid).maybeSingle();
   if (!owner || owner.user_id !== userId) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
-  const proc = getProcess(sub.process_id);
-  if (!proc) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const bundle = await resolveProcess(admin, sub.process_id, userId);
+  if (!bundle) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const proc = bundle.def;
   const req = proc.requirement || null;
   const reqDoc = req ? req.document : null;
-  const reqDef = reqDoc ? getDocumentType(reqDoc) : null;
+  const reqDef = reqDoc ? resolveDocumentType(bundle, reqDoc) : null;
   const reqLabel = reqDef ? reqDef.label : reqDoc;
   const { data: docs } = await admin.from('documents').select('id,doc_type,status,created_at').eq('submission_id', sid).order('created_at', { ascending: false });
   const list = docs || [];
@@ -69,7 +70,7 @@ export async function GET(request, ctx) {
     // otherwise the compared document's type label (never hard-coded).
     const typeByDocId = {};
     for (const d of list) { if (d && d.id && !typeByDocId[d.id]) typeByDocId[d.id] = d.doc_type; }
-    checks = (cr || []).map((c) => ({ ...c, compared_label: comparedLabel(c.compared_document_id, typeByDocId) }));
+    checks = (cr || []).map((c) => ({ ...c, compared_label: comparedLabel(c.compared_document_id, typeByDocId, bundle.docs) }));
     const { data: ef } = await admin.from('extracted_fields').select('document_id,field_key,value_text,confidence,unreadable,found_on_page').in('document_id', docIds);
     for (const f of (ef || [])) {
       if (!fieldsByDoc[f.document_id]) fieldsByDoc[f.document_id] = [];
@@ -88,7 +89,7 @@ export async function GET(request, ctx) {
   const gateDoc = reqDoc ? (byType[reqDoc] || null) : null;
   const gateOk = reqDoc ? (gateDoc && (gateDoc.status === 'needs_review' || gateDoc.status === 'approved') && sub.status !== 'requirement_not_met') : true;
   for (const t of proc.documents) {
-    const def = getDocumentType(t);
+    const def = resolveDocumentType(bundle, t);
     const d = byType[t] || null;
     const locked = reqDoc ? (t !== reqDoc && !gateOk) : false;
     let action = 'upload';
@@ -122,7 +123,7 @@ export async function GET(request, ctx) {
         reason = 'Could not compare, please retake.';
       } else if (reqDoc && t === reqDoc && sub.status === 'requirement_not_met') {
         action = 'read_ok';
-        reason = buildRequirementFailReason(proc);
+        reason = buildRequirementFailReason(proc, bundle.docs);
       } else {
         action = 'ready';
         reason = d.status === 'approved' ? 'Approved by reviewer.' : 'Looks ready. A person still decides.';

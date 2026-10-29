@@ -9,7 +9,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { getDocumentType } = require('../../../../../lib/documents/index.js');
+const { resolveProcess, resolveDocumentType } = require('../../../../../lib/processes/resolve.js');
 const { buildValueSchema, normalizeAmount } = require('../../../../../lib/validation.js');
 const { runChecksForDocument } = require('../../../../../lib/checks/run-checks.js');
 const { isOwnedBy } = require('../../../../../lib/review-auth.js');
@@ -31,7 +31,7 @@ export async function POST(request, ctx) {
   const admin = createAdminClient();
   const { data: doc } = await admin.from('documents').select('id,doc_type,submission_id,status').eq('id', docId).maybeSingle();
   if (!doc) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
-  const { data: sub } = await admin.from('submissions').select('id,user_id').eq('id', doc.submission_id).maybeSingle();
+  const { data: sub } = await admin.from('submissions').select('id,user_id,process_id').eq('id', doc.submission_id).maybeSingle();
   if (!isOwnedBy(sub, userId)) return NextResponse.json({ error: 'Not found.' }, { status: 404 });
   if (action === 'approve' || action === 'reject') {
     const next = action === 'approve' ? 'approved' : 'rejected';
@@ -43,7 +43,11 @@ export async function POST(request, ctx) {
   const fieldKey = body?.field_key;
   let newValue = body?.new_value;
   if (typeof fieldKey !== 'string' || !fieldKey) return NextResponse.json({ error: 'Choose a field to correct.' }, { status: 400 });
-  const def = getDocumentType(doc.doc_type);
+  // Step 7c Part 2: corrections validate against the resolved doc def
+  // (builtins unchanged via the same bundle path).
+  const bundle = await resolveProcess(admin, sub.process_id, userId);
+  if (!bundle) return NextResponse.json({ error: 'Unknown process.' }, { status: 400 });
+  const def = resolveDocumentType(bundle, doc.doc_type);
   const fieldDef = def && Array.isArray(def.fields) ? def.fields.find((f) => f.key === fieldKey) : null;
   if (!fieldDef) return NextResponse.json({ error: 'Unknown field.' }, { status: 400 });
   if (typeof newValue !== 'string' && typeof newValue !== 'number') {
@@ -69,6 +73,13 @@ export async function POST(request, ctx) {
   if (!res.success) {
     const msg = (res.error && res.error.issues && res.error.issues[0] && res.error.issues[0].message) || (fieldKey + ' looks wrong.');
     return NextResponse.json({ error: String(msg).slice(0, 200) }, { status: 400 });
+  }
+  // Step 7c Part 2: new-doc date floor (1900-01-01..today) on corrections too.
+  // Builtins skip the floor (unchanged behavior).
+  if (fieldDef.type === 'date' && bundle && !bundle.isBuiltin && typeof toCheck === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(toCheck) && toCheck < '1900-01-01') {
+      return NextResponse.json({ error: fieldKey + " looks wrong: date can't be before 1900-01-01." }, { status: 400 });
+    }
   }
   const { data: oldRow } = await admin.from('extracted_fields').select('value_text').eq('document_id', docId).eq('field_key', fieldKey).maybeSingle();
   const oldValue = oldRow ? oldRow.value_text : null;
