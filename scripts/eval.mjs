@@ -10,14 +10,31 @@
 // - Poison test is containment per the plan (schema keys only, no
 //   verified/status/decision key, no "verified" anywhere, type unchanged),
 //   NOT field accuracy. Accuracy for that sample scores separately.
+// - Errors are a separate outcome, never silently scored as wrong: a reader
+//   throw (API error/timeout/empty/JSON parse) or validation throw marks the
+//   sample suriError (ocrError for OCR). Error docs are excluded from accuracy
+//   and counted + shown separately. All-unreadable and misreads are NOT
+//   errors: they are valid model answers scored as 0.
+// - Three-way split (correct / unreadable-retake / wrong value) is recorded
+//   per sample as suriUnreadable for the NEXT run only: existing cache entries
+//   predate the counter, so SCORECARD.md stays two-way until a full --fresh
+//   rerun backfills it. Plain OCR has no unreadable: its misses stay wrong.
+// - Timing: per-document seconds per reader (suriSeconds, ocrSeconds) are
+//   cached alongside scores and averaged in the summary.
 // - Never prints keys, document text, OCR text, or model output.
 //
 // Usage:
 //   node --env-file=.env.local scripts/eval.mjs --only=birth_certificate --provider=meta
 //   node --env-file=.env.local scripts/eval.mjs --provider=meta
+//   node --env-file=.env.local scripts/eval.mjs --provider=meta --fresh --file=samples/messy/valid-id-clean--blur.png,samples/phone/proof-of-billing-phone.jpg
 // Flags:
 //   --only=<doc_type>   run only one doc_type (e.g. birth_certificate)
 //   --provider=<name>   meta (default) or baseten
+//   --file=<paths>      run only these sample files (comma-separated, repeatable);
+//                       match by samples manifest "file" value
+//   --fresh             ignore cached scores for the selected samples and re-run
+//                       them (still writes the cache). Needed to backfill errors
+//                       and per-document seconds.
 //
 // Keys come from node's --env-file flag. This script never reads .env files
 // itself and never prints any key value.
@@ -363,16 +380,23 @@ async function loadCache() {
 }
 
 async function saveCache(cache) {
-  // SCORES ONLY: correct/total counts per sample+provider, plus the
-  // source-file hash for invalidation. Never raw output.
+  // SCORES ONLY: correct/total counts per sample+provider, unreadable count
+  // (for the future correct/unreadable/wrong split), error flags
+  // (kinds whitelisted), per-reader seconds, plus the source-file hash
+  // for invalidation. Never raw output.
   const safe = {};
   for (const [k, v] of Object.entries(cache)) {
     if (!v || typeof v !== "object") continue;
     safe[k] = {
       suriCorrect: Number(v.suriCorrect) || 0,
+      suriUnreadable: typeof v.suriUnreadable === "number" && Number.isFinite(v.suriUnreadable) ? Math.max(0, Math.floor(v.suriUnreadable)) : null,
       suriTotal: Number(v.suriTotal) || 0,
       ocrCorrect: Number(v.ocrCorrect) || 0,
       ocrTotal: Number(v.ocrTotal) || 0,
+      suriError: typeof v.suriError === "string" && ["api-error", "timeout-or-network", "empty-content", "json-parse-failure", "validation-throw"].includes(v.suriError) ? v.suriError : null,
+      ocrError: v.ocrError ? 1 : 0,
+      suriSeconds: typeof v.suriSeconds === "number" && Number.isFinite(v.suriSeconds) ? v.suriSeconds : null,
+      ocrSeconds: typeof v.ocrSeconds === "number" && Number.isFinite(v.ocrSeconds) ? v.ocrSeconds : null,
     };
     if (v.poison === "PASS" || v.poison === "FAIL") safe[k].poison = v.poison;
     if (typeof v.fh === "string" && /^[0-9a-f]{12}$/.test(v.fh)) safe[k].fh = v.fh;
@@ -383,15 +407,32 @@ async function saveCache(cache) {
 function parseArgs(argv) {
   let only = null;
   let provider = (process.env.READER_PROVIDER || "meta").toLowerCase();
+  const files = [];
+  let fresh = false;
   for (const a of argv) {
     if (a.startsWith("--only=")) only = a.slice("--only=".length).trim();
     else if (a.startsWith("--provider=")) provider = a.slice("--provider=".length).trim().toLowerCase();
+    else if (a.startsWith("--file=")) {
+      for (const p of a.slice("--file=".length).split(",")) {
+        const t = p.trim();
+        if (t) files.push(t);
+      }
+    } else if (a === "--fresh") fresh = true;
   }
-  return { only: only || null, provider };
+  return { only: only || null, provider, files, fresh };
+}
+
+// Error kinds for the separate error outcome (never scored as wrong).
+function classifyReaderError(e) {
+  if (e instanceof SyntaxError) return "json-parse-failure";
+  const m = String((e && e.message) || "");
+  if (/no message content/i.test(m)) return "empty-content";
+  if (/timeout|timed out|abort|fetch failed|network|econn|enotfound|socket/i.test(m)) return "timeout-or-network";
+  return "api-error";
 }
 
 async function main() {
-  const { only, provider } = parseArgs(process.argv.slice(2));
+  const { only, provider, files, fresh } = parseArgs(process.argv.slice(2));
   if (!READER_CONFIGS[provider]) {
     console.error(`Error: unknown --provider "${provider}". Use "meta" or "baseten".`);
     process.exit(1);
@@ -406,12 +447,16 @@ async function main() {
   const manifest = JSON.parse(manifestRaw);
   let samples = Array.isArray(manifest.samples) ? manifest.samples : [];
   if (only) samples = samples.filter((s) => s && s.doc_type === only);
+  if (files.length > 0) {
+    const fileSet = new Set(files);
+    samples = samples.filter((s) => s && fileSet.has(s.file));
+  }
   if (samples.length === 0) {
     console.error(`Error: no samples${only ? ` for --only=${only}` : ""}. Check samples/manifest.json.`);
     process.exit(1);
   }
   const cache = await loadCache();
-  console.log(`Provider: ${provider} | Model: ${cfg.model} | Samples: ${samples.length}${only ? ` (only ${only})` : ""}`);
+  console.log(`Provider: ${provider} | Model: ${cfg.model} | Samples: ${samples.length}${only ? ` (only ${only})` : ""}${files.length > 0 ? ` (files ${files.length})` : ""}${fresh ? " (fresh)" : ""}`);
   let worker = null;
   async function ocrText(preparedBytes) {
     if (!worker) worker = await createWorker("eng");
@@ -421,10 +466,18 @@ async function main() {
   const perType = {};
   const poisonSeen = new Set();
   const poisonOut = [];
+  const suriErrorOut = [];
+  const ocrErrorOut = [];
   let totalSuriCorrect = 0;
   let totalSuriTotal = 0;
   let totalOcrCorrect = 0;
   let totalOcrTotal = 0;
+  let totalSuriErrors = 0;
+  let totalOcrErrors = 0;
+  let totalSuriSeconds = 0;
+  let totalSuriTimed = 0;
+  let totalOcrSeconds = 0;
+  let totalOcrTimed = 0;
   for (const s of samples) {
     const relFile = s.file;
     const absFile = path.join(root, relFile);
@@ -462,10 +515,14 @@ async function main() {
     let entry = cache[cacheKey];
     const fhOk = !entry || typeof entry.fh !== "string" ? true : entry.fh === fh12;
     const cacheHit =
+      !fresh &&
       entry && typeof entry === "object" &&
       entry.suriTotal === keys.length && entry.ocrTotal === keys.length && fhOk;
     if (cacheHit) {
-      console.log(`cached: ${relFile} | suri ${entry.suriCorrect}/${entry.suriTotal} | ocr ${entry.ocrCorrect}/${entry.ocrTotal}${entry.poison ? ` | poison ${entry.poison}` : ""}`);
+      const suriTag = entry.suriError ? `suri ERROR(${entry.suriError})` : `suri ${entry.suriCorrect}/${entry.suriTotal}`;
+      const ocrTag = entry.ocrError ? `ocr ERROR` : `ocr ${entry.ocrCorrect}/${entry.ocrTotal}`;
+      const secTag = (typeof entry.suriSeconds === "number" ? ` suri ${entry.suriSeconds.toFixed(1)}s` : "") + (typeof entry.ocrSeconds === "number" ? ` ocr ${entry.ocrSeconds.toFixed(1)}s` : "");
+      console.log(`cached: ${relFile} | ${suriTag} | ${ocrTag}${entry.poison ? ` | poison ${entry.poison}` : ""}${secTag}`);
       if (typeof entry.fh !== "string" && fh12) {
         entry.fh = fh12;
         await saveCache(cache);
@@ -479,52 +536,113 @@ async function main() {
         continue;
       }
       let suriCorrect = 0;
+      let suriUnreadable = 0;
       let poison = undefined;
+      let suriError = null;
+      let suriSeconds = null;
       try {
+        const t0 = Date.now();
         const modelOut = await readWithAppReader(docDef, prepared.bytes, prepared.mime, provider, apiKey);
-        const checked = validateLikeApp(docDef, modelOut);
+        suriSeconds = Math.round(((Date.now() - t0) / 1000) * 10) / 10;
+        let checked;
+        try {
+          checked = validateLikeApp(docDef, modelOut);
+        } catch {
+          suriError = "validation-throw";
+          if (s.condition === "poisoned") poison = "FAIL";
+          console.log(`reader validation throw (error, not scored): ${relFile}`);
+          throw new Error("suri-validation-throw");
+        }
         for (const k of keys) {
           const got = checked.fields && checked.fields[k] ? checked.fields[k].value : null;
           const unread = checked.fields && checked.fields[k] ? checked.fields[k].unreadable === true : true;
-          if (!unread && suriFieldCorrect(fieldDefs[k], got, expected[k])) suriCorrect += 1;
+          if (unread) suriUnreadable += 1;
+          else if (suriFieldCorrect(fieldDefs[k], got, expected[k])) suriCorrect += 1;
         }
         if (s.condition === "poisoned") {
-          // Containment only, per the plan. Accuracy for this sample is
-          // scored in the loop above like any other sample.
           poison = checkPoisonContainment(modelOut, docDef, s.doc_type);
         }
-      } catch {
+      } catch (e) {
+        if (e && e.message === "suri-validation-throw") {
+          if (!suriError) suriError = "validation-throw";
+        } else {
+          suriError = classifyReaderError(e);
+          if (!suriSeconds) suriSeconds = null;
+          if (s.condition === "poisoned") poison = "FAIL";
+          console.log(`reader error (${suriError}, not scored): ${relFile}`);
+        }
         suriCorrect = 0;
-        if (s.condition === "poisoned") poison = "FAIL";
-        console.log(`reader error (counts as 0): ${relFile}`);
+        suriUnreadable = null;
       }
 
       let ocrCorrect = 0;
+      let ocrError = 0;
+      let ocrSeconds = null;
       try {
+        const t1 = Date.now();
         const text = await ocrText(prepared.bytes);
+        ocrSeconds = Math.round(((Date.now() - t1) / 1000) * 10) / 10;
         for (const k of keys) {
           if (ocrFieldCorrect(fieldDefs[k], text, expected[k])) ocrCorrect += 1;
         }
       } catch {
         ocrCorrect = 0;
-        console.log(`ocr error (counts as 0): ${relFile}`);
+        ocrError = 1;
+        console.log(`ocr error (not scored): ${relFile}`);
       }
       entry = { suriCorrect, suriTotal: keys.length, ocrCorrect, ocrTotal: keys.length, fh: fh12 };
+      if (typeof suriUnreadable === "number") entry.suriUnreadable = suriUnreadable;
+      else entry.suriUnreadable = null;
+      if (suriError) entry.suriError = suriError;
+      else entry.suriError = null;
+      if (ocrError) entry.ocrError = 1;
+      else entry.ocrError = 0;
+      if (typeof suriSeconds === "number") entry.suriSeconds = suriSeconds;
+      else entry.suriSeconds = null;
+      if (typeof ocrSeconds === "number") entry.ocrSeconds = ocrSeconds;
+      else entry.ocrSeconds = null;
       if (poison !== undefined) entry.poison = poison;
       cache[cacheKey] = entry;
       await saveCache(cache);
-      console.log(`done: ${relFile} | suri ${suriCorrect}/${keys.length} | ocr ${ocrCorrect}/${keys.length}${poison !== undefined ? ` | poison ${poison}` : ""}`);
+      const suriTag2 = entry.suriError ? `suri ERROR(${entry.suriError})` : `suri ${suriCorrect}/${keys.length}`;
+      const ocrTag2 = entry.ocrError ? `ocr ERROR` : `ocr ${ocrCorrect}/${keys.length}`;
+      const secTag2 = (typeof entry.suriSeconds === "number" ? ` suri ${entry.suriSeconds.toFixed(1)}s` : "") + (typeof entry.ocrSeconds === "number" ? ` ocr ${entry.ocrSeconds.toFixed(1)}s` : "");
+      console.log(`done: ${relFile} | ${suriTag2} | ${ocrTag2}${poison !== undefined ? ` | poison ${poison}` : ""}${secTag2}`);
     }
-    if (!perType[s.doc_type]) perType[s.doc_type] = { suriCorrect: 0, suriTotal: 0, ocrCorrect: 0, ocrTotal: 0, n: 0 };
-    perType[s.doc_type].suriCorrect += entry.suriCorrect;
-    perType[s.doc_type].suriTotal += entry.suriTotal;
-    perType[s.doc_type].ocrCorrect += entry.ocrCorrect;
-    perType[s.doc_type].ocrTotal += entry.ocrTotal;
+    if (!perType[s.doc_type]) perType[s.doc_type] = { suriCorrect: 0, suriTotal: 0, ocrCorrect: 0, ocrTotal: 0, n: 0, suriErrors: 0, ocrErrors: 0, suriSeconds: 0, suriTimed: 0, ocrSeconds: 0, ocrTimed: 0 };
     perType[s.doc_type].n += 1;
-    totalSuriCorrect += entry.suriCorrect;
-    totalSuriTotal += entry.suriTotal;
-    totalOcrCorrect += entry.ocrCorrect;
-    totalOcrTotal += entry.ocrTotal;
+    if (entry.suriError) {
+      perType[s.doc_type].suriErrors += 1;
+      totalSuriErrors += 1;
+      if (!suriErrorOut.includes(`${relFile}: ${entry.suriError}`)) suriErrorOut.push(`${relFile}: ${entry.suriError}`);
+    } else {
+      perType[s.doc_type].suriCorrect += entry.suriCorrect;
+      perType[s.doc_type].suriTotal += entry.suriTotal;
+      totalSuriCorrect += entry.suriCorrect;
+      totalSuriTotal += entry.suriTotal;
+      if (typeof entry.suriSeconds === "number") {
+        perType[s.doc_type].suriSeconds += entry.suriSeconds;
+        perType[s.doc_type].suriTimed += 1;
+        totalSuriSeconds += entry.suriSeconds;
+        totalSuriTimed += 1;
+      }
+    }
+    if (entry.ocrError) {
+      perType[s.doc_type].ocrErrors += 1;
+      totalOcrErrors += 1;
+      if (!ocrErrorOut.includes(relFile)) ocrErrorOut.push(relFile);
+    } else {
+      perType[s.doc_type].ocrCorrect += entry.ocrCorrect;
+      perType[s.doc_type].ocrTotal += entry.ocrTotal;
+      totalOcrCorrect += entry.ocrCorrect;
+      totalOcrTotal += entry.ocrTotal;
+      if (typeof entry.ocrSeconds === "number") {
+        perType[s.doc_type].ocrSeconds += entry.ocrSeconds;
+        perType[s.doc_type].ocrTimed += 1;
+        totalOcrSeconds += entry.ocrSeconds;
+        totalOcrTimed += 1;
+      }
+    }
     if (entry.poison && !poisonSeen.has(relFile)) {
       poisonSeen.add(relFile);
       poisonOut.push(`${relFile}: poison ${entry.poison}`);
@@ -534,14 +652,28 @@ async function main() {
     try { await worker.terminate(); } catch { /* ignore */ }
   }
   const pct = (a, b) => (b > 0 ? `${((100 * a) / b).toFixed(1)}%` : "n/a");
-  console.log("\nAccuracy (fields correct, after app normalization):");
+  const avg = (secs, n) => (n > 0 ? `${(secs / n).toFixed(1)}s avg` : "n/a");
+  console.log("\nAccuracy (fields correct, after app normalization; errors excluded, not scored):");
   console.log("doc_type | docs | suri | plain OCR");
   const types = Object.keys(perType).sort();
   for (const t of types) {
     const r = perType[t];
-    console.log(`${t} | ${r.n} | ${r.suriCorrect}/${r.suriTotal} (${pct(r.suriCorrect, r.suriTotal)}) | ${r.ocrCorrect}/${r.ocrTotal} (${pct(r.ocrCorrect, r.ocrTotal)})`);
+    const suriErr = r.suriErrors > 0 ? ` +${r.suriErrors} error` : "";
+    const ocrErr = r.ocrErrors > 0 ? ` +${r.ocrErrors} error` : "";
+    console.log(`${t} | ${r.n} | ${r.suriCorrect}/${r.suriTotal} (${pct(r.suriCorrect, r.suriTotal)})${suriErr} | ${r.ocrCorrect}/${r.ocrTotal} (${pct(r.ocrCorrect, r.ocrTotal)})${ocrErr}`);
   }
-  console.log(`overall | ${samples.length} | ${totalSuriCorrect}/${totalSuriTotal} (${pct(totalSuriCorrect, totalSuriTotal)}) | ${totalOcrCorrect}/${totalOcrTotal} (${pct(totalOcrCorrect, totalOcrTotal)})`);
+  const suriErrAll = totalSuriErrors > 0 ? ` +${totalSuriErrors} error` : "";
+  const ocrErrAll = totalOcrErrors > 0 ? ` +${totalOcrErrors} error` : "";
+  console.log(`overall | ${samples.length} | ${totalSuriCorrect}/${totalSuriTotal} (${pct(totalSuriCorrect, totalSuriTotal)})${suriErrAll} | ${totalOcrCorrect}/${totalOcrTotal} (${pct(totalOcrCorrect, totalOcrTotal)})${ocrErrAll}`);
+  console.log(`\nTiming (per-document seconds): suri ${avg(totalSuriSeconds, totalSuriTimed)} over ${totalSuriTimed} docs | ocr ${avg(totalOcrSeconds, totalOcrTimed)} over ${totalOcrTimed} docs`);
+  if (suriErrorOut.length > 0) {
+    console.log("\nSuri errors (excluded from accuracy, never silently scored as wrong):");
+    for (const line of suriErrorOut) console.log(line);
+  }
+  if (ocrErrorOut.length > 0) {
+    console.log("\nOCR errors (excluded from accuracy):");
+    for (const line of ocrErrorOut) console.log(line);
+  }
   if (poisonOut.length > 0) {
     console.log("\nPoison test (injection read as data and ignored):");
     for (const line of poisonOut) console.log(line);

@@ -63,7 +63,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 7 Must flow done on the live URL, phone + laptop
 - [x] Step 7b receipt check done on the live URL
 - [x] Step 7c done on the live URL (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged)
-- [ ] Next: step 8 (scorecard)
+- [x] Step 8 scorecard done (25 docs: Suri Meta 166/179 92.7% 0 errors, Baseten 171/175 97.7% +1 timeout error on phone billing, plain OCR 134/179 74.9%, poison PASS both; fresh 3-file rerun + timing partial Meta 4.1s / Baseten 51.1s; docs/SCORECARD.md + docs/scorecard.csv)
+- [ ] Next: step 9 (Should features)
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -111,3 +112,5 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 3 (Oct 29):** Decided to add 7c so Suri is general for any office, not only the two samples.
 - **Day 3 (Oct 29):** Step 7c built in 3 parts and live (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged). Suri now builds a check from plain words. Small fixes: draft prompt prefers reuse (valid ID → valid_id); same-document checks show "match. reason" without "same as". **Next:** step 8 scorecard.
 - **Day 3 (Oct 29):** Scope frozen; visual references recorded in DESIGN.md.
+- **Day 3 (Oct 29):** Step 8 full eval passed on all 25 samples (179 fields): Suri on Meta muse-spark-1.3 166/179 (92.7%), Muse Spark Open on Baseten 164/179 (91.6%), plain OCR 134/179 (74.9%), poison PASS on both; scorecard in docs/SCORECARD.md + docs/scorecard.csv. Timing not recorded (eval script logs no per-document seconds). **Next:** step 9 Should features.
+- **Day 3 (Oct 29):** Step 8 zeros diagnosed text-free + fresh 3-file rerun: (1) Meta blurred ID all-unreadable 0/8 confirmed (5.1s); (2) birth-cert-2 flipped to 8/8 both (transient, Meta 3.7s / Baseten 85.9s); (3) phone billing Meta 0/4 type-other (3.5s), Baseten timeout-or-network ERROR excluded. New headline: Meta 166/179 92.7% 0 errors, Baseten 171/175 97.7% +1 error, OCR 134/179 74.9%. eval.mjs now records error outcome + per-doc seconds with --file/--fresh; SCORECARD.md + scorecard.csv rebuilt with Errors/Timing/Diagnosis sections. **Next:** step 9 Should features.
