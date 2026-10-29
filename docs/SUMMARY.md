@@ -11,7 +11,7 @@ Suri (Tagalog for "examine") is a **document readiness check**: it helps people 
 
 - **General tool, not a portal.** Suri is the understanding-and-checking engine that any office's existing system could plug into. No accounts, no application workflow.
 - **Main user: the applicant.** The office reviewer is the second user.
-- **Sample story for the demo:** a made-up scholarship document intake at **Linawan College** (birth certificate, valid ID, report card). A second, non-school sample (an official receipt) shows Suri is general.
+- **General checker:** Suri works for any office. An office describes its requirements in plain words and Suri builds the checklist. The made-up scholarship document intake at **Linawan College** (birth certificate, valid ID, report card) and the official receipt check are ready-made examples, not the only options.
 - **Beyond plain OCR:** Suri understands layout (which value belongs to which label, even in columns), handles tilted, shadowed, blurry or low-light phone photos, knows what kind of document it is, and says "couldn't read, please retake" instead of guessing.
 
 ## Product principles (never break these)

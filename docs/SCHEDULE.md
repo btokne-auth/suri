@@ -6,7 +6,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 **The rule:** don't start a step until the one before it passes its "done when" check. The riskiest part (does Muse Spark read the documents well?) comes early, so a problem shows up on Day 1, not Day 6.
 
-**If you fall behind:** cut from the bottom. Drop Could items first, then Should items from step 9 backward. Never cut a Must. Steps 1–7 alone are a complete, submittable entry.
+**If you fall behind:** cut SAM 3.1 crop and tap-to-highlight first, then Could items, then Should items from step 9 backward. Never cut a Must. Steps 1–7 alone are a complete, submittable entry.
 
 | # | Step | Day | Done when |
 | --- | --- | --- | --- |
@@ -18,6 +18,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 | 6 | **Profile, checks, requirement check:** profile form, Filipino name rules, mismatch checks, cross-document checks, requirement check, readiness view (set-first), work log | Thu Oct 29 | A non-Linawan ID is stopped; a mismatched birth date is flagged. **Scope freeze tonight** |
 | 7 | **Reviewer view (demo mode switch):** image beside fields, flags, approve / correct / reject with validation, review log | Fri Oct 30 | The whole Must flow works on the live URL, on phone and laptop. **Milestone: submittable entry** |
 | 7b | **Receipt check process (settings only):** receipt document + process settings prove the engine is process-agnostic | Fri Oct 30 | Linawan flow still passes; receipt process lists on /start with its own unlock rule |
+| 7c | **Set up a check:** plain words become a confirmed process | Thu–Fri Oct 29–30 | Done when: an office description (e.g. barangay clearance: valid ID + proof of billing, names match, address in Barangay Baybayin, bill within 3 months) becomes a confirmed process, and uploads are read and checked on the live URL |
 | 8 | **Proof:** sample documents + answer key, eval script, plain OCR vs Suri scorecard | Sat Oct 31 | A table of real accuracy numbers |
 | 9 | **Should features:** photo quality / retake, wrong-document check, Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, security pass | Sun–Mon Nov 1–2 | Each tested on the live URL; eval rerun after SAM |
 | 10 | **Polish:** README, logo files + favicon, scan beam, isometric SVG hero, light mode toggle; Could items only if time is left | Tue Nov 3 | README done; nothing broken. **Feature freeze tonight** |
@@ -61,7 +62,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Robustness + profile date fix coded: stuck "reading" over 2 min flips to "error" with "Reading took too long. Please upload again." on GET /api/submissions/[id] (no cron, re-upload works as newest wins); background read wrapped so any error sets "error"; /profile birth date is native date input with label, min 1900-01-01, max today after open, YYYY-MM-DD, same server validation, no blocking handlers; date input max-width 100% at 360px; 57/57 tests, lint 0 errors, build passes
 - [x] Step 7 Must flow done on the live URL, phone + laptop
 - [x] Step 7b receipt check done on the live URL
-- [ ] Next: step 8 (scorecard)
+- [ ] Next: step 7c (set up a check), then step 8 (scorecard)
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -98,3 +99,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 2 (Oct 28):** Robustness + profile date fix coded: stuck "reading" over 2 min flips to "error" with "Reading took too long. Please upload again." on checklist load (no cron, re-upload works); background read always ends in "error" on failure; /profile birth date is native date input with label, min 1900-01-01, max today, YYYY-MM-DD, same server check. 57/57 tests, lint 0 errors, build passes. **Next:** commit + push, live 360px phone check.
 - **Day 2 (Oct 28):** Step 7b receipt check coded: official_receipt doc (3 optional item slots, subtotal/VAT/total), receipt_check process (no profile, no requirement), peso normalization before Zod for model output + reviewer corrections, generic sum_equals rule (empty slot = 0, all-empty skips, unreadable skips), self-check display without "same as", 2 sample templates (good totals + bad total). 75/75 tests, lint 0 errors, build passes. **Next:** commit + push, live phone + laptop check of receipt on /start, then step 8.
 - **Day 2 (Oct 28):** Phone layout fixed, stuck-reading timeout, profile birth date as month/day/year, step 7b receipt check live; about 2–3 days ahead of schedule.
+- **Day 3 (Oct 29):** Decided to add 7c so Suri is general for any office, not only the two samples.
