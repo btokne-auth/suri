@@ -144,8 +144,10 @@ export default function SetClient() {
   const stillReading = (data.rows || []).some((row) => row && (row.status === 'uploaded' || row.status === 'reading'));
   const showMsg = msg && msg !== 'Loading...' && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
   // Each check says what it compared against: "same as your profile" or
-  // "same as {label}". Self-checks (sum_equals) compare within the same
-  // document, so they show no "same as" suffix. The label arrives on each
+  // "same as {label}". Same-document checks (sum_equals plus the fixed
+  // rule/value rules contains, equals, within_months, not_future) compare
+  // within one document, so they show "result. reason" with no "same as"
+  // suffix, like the receipt checks. The label arrives on each
   // check from the API (document settings, never hard-coded); the fallback
   // below rebuilds it from the row labels for the same result.
   const labelByType = {};
@@ -155,6 +157,11 @@ export default function SetClient() {
   function isSelfCheck(c) {
     if (!c) return false;
     if (c.rule === 'sum_equals') return true;
+    // Fixed rule or value inside the SAME document (contains, equals,
+    // within_months, not_future): no "same as" suffix, like receipt checks.
+    // Saved self-like rows use compared_document_id = own id.
+    if (c.document_id && c.compared_document_id && c.document_id === c.compared_document_id) return true;
+    if (['contains', 'equals', 'within_months', 'not_future'].includes(c.rule)) return true;
     return false;
   }
   function comparedLabelText(c) {

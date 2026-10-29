@@ -39,7 +39,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Where we are now
 
-**Day 2 (Oct 28), step 8: scorecard**
+**Day 3 (Oct 29), step 8: scorecard**
 - [x] Step 5 upload pipeline done (profile, submissions, upload + magic-byte checks + limits, background reading reading to needs_review on its own, owner-only image URL; phone proof passed; dev-only test page 404s in production)
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
@@ -62,7 +62,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Robustness + profile date fix coded: stuck "reading" over 2 min flips to "error" with "Reading took too long. Please upload again." on GET /api/submissions/[id] (no cron, re-upload works as newest wins); background read wrapped so any error sets "error"; /profile birth date is native date input with label, min 1900-01-01, max today after open, YYYY-MM-DD, same server validation, no blocking handlers; date input max-width 100% at 360px; 57/57 tests, lint 0 errors, build passes
 - [x] Step 7 Must flow done on the live URL, phone + laptop
 - [x] Step 7b receipt check done on the live URL
-- [ ] Next: step 7c (set up a check), then step 8 (scorecard)
+- [x] Step 7c done on the live URL (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged)
+- [ ] Next: step 8 (scorecard)
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -73,6 +74,9 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - /profile shows the same error twice (red under the field and grey at the bottom)
 - Empty birth date says "use YYYY-MM-DD"; should say "Please enter your birth date"
 - Amounts shown inconsistently (75 vs 75.00); show as ₱75.00
+- Override note box has no visible border
+- "Overridden. A person decides." banner shows twice
+- /setup confirm screen shows field keys (full_name (name, required)) instead of plain labels
 
 ## Known limits (for README)
 
@@ -100,3 +104,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 2 (Oct 28):** Step 7b receipt check coded: official_receipt doc (3 optional item slots, subtotal/VAT/total), receipt_check process (no profile, no requirement), peso normalization before Zod for model output + reviewer corrections, generic sum_equals rule (empty slot = 0, all-empty skips, unreadable skips), self-check display without "same as", 2 sample templates (good totals + bad total). 75/75 tests, lint 0 errors, build passes. **Next:** commit + push, live phone + laptop check of receipt on /start, then step 8.
 - **Day 2 (Oct 28):** Phone layout fixed, stuck-reading timeout, profile birth date as month/day/year, step 7b receipt check live; about 2–3 days ahead of schedule.
 - **Day 3 (Oct 29):** Decided to add 7c so Suri is general for any office, not only the two samples.
+- **Day 3 (Oct 29):** Step 7c built in 3 parts and live (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged). Suri now builds a check from plain words. Small fixes: draft prompt prefers reuse (valid ID → valid_id); same-document checks show "match. reason" without "same as". **Next:** step 8 scorecard.
