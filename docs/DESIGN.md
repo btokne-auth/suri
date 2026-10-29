@@ -33,6 +33,23 @@ The accent is darker in light mode because the periwinkle is too faint on white.
 - **Manrope** for everything (free, Google Fonts, loaded with `next/font`)
 - A monospace font (for example JetBrains Mono) only for data values
 
+## Visual references (principles only, no copied assets)
+
+Direction for the scanner interface, not assets to copy. Everything is our own implementation.
+
+- **Detroit: Become Human** (analysis mode): leader lines from a label to its spot, small "analysis complete" notices when a read finishes.
+- **Star Wars Jedi: Fallen Order** (BD-1): a scan sweep across the photo while reading, then short databank-style entries per document.
+- **Death Stranding**: manifest-style cargo lists — one thin status line per document, codes over prose.
+- **GitHub Learn exam outline**: monospace all-caps labels, small square markers, expandable rows for detail.
+- **ASCII loading idea** inspired by `ascii-reveal` by quanhoangindex (MIT). Our own implementation, credited in the README.
+- **Step 10 signature elements (do these 3 well):**
+  1. Scan beam + ASCII "scanning" placeholder while a document is reading.
+  2. Manifest-style checklist (for example `DOC-01 VALID ID ▪ READY`): square status markers, one thin status line per document, expandable to show its checks.
+  3. Result line like `ANALYSIS COMPLETE · 2 READY · 1 TO FIX`.
+- **Bonus only** if "where it came from" (step 9) survives: leader lines from a field label to its spot on the photo in the reviewer view.
+- **Fonts:** Manrope (main) + one free monospace font from Google Fonts (JetBrains Mono or IBM Plex Mono) for labels and codes.
+- **Readability rules:** body text 16px, strong contrast; thin lines and glow are decoration only; works at 360px.
+
 ## Logo: "Scan beam S"
 
 - A bold Manrope **S** inside four camera corners, crossed by a horizontal accent-colored scan beam, next to the **Suri** wordmark in Manrope ExtraBold

@@ -87,6 +87,11 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 - If step 8 finishes early, move the base theme (colors, Manrope font, button and input styles) up to right after step 8; logo, scan beam, hero and light toggle stay in step 10.
 
+## Ship checklist (step 11)
+
+- [ ] Choose a license (MIT / Apache 2.0 / AGPL / none) and check the hackathon terms first
+- [ ] README credits: ascii-reveal (inspiration)
+
 ## Daily log
 
 (One or two lines per day: what got done, what broke, what's next.)
@@ -105,3 +110,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 2 (Oct 28):** Phone layout fixed, stuck-reading timeout, profile birth date as month/day/year, step 7b receipt check live; about 2–3 days ahead of schedule.
 - **Day 3 (Oct 29):** Decided to add 7c so Suri is general for any office, not only the two samples.
 - **Day 3 (Oct 29):** Step 7c built in 3 parts and live (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged). Suri now builds a check from plain words. Small fixes: draft prompt prefers reuse (valid ID → valid_id); same-document checks show "match. reason" without "same as". **Next:** step 8 scorecard.
+- **Day 3 (Oct 29):** Scope frozen; visual references recorded in DESIGN.md.
