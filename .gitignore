@@ -37,6 +37,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# step 8 eval cache (scores + timing only, never raw model output)
+scripts/.eval-cache.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

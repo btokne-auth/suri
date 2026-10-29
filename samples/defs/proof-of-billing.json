@@ -1,0 +1,16 @@
+{
+  "label": "Barangay clearance proof of billing (eval fixture)",
+  "documents": [
+    {
+      "id": "proof_of_billing",
+      "label": "Proof of billing (sample water company)",
+      "fields": [
+        { "key": "account_name", "type": "name", "label": "Account name", "required": true, "maxLength": 100 },
+        { "key": "service_address", "type": "text", "label": "Service address", "required": true, "maxLength": 120 },
+        { "key": "billing_date", "type": "date", "label": "Billing date", "required": true },
+        { "key": "amount_due", "type": "number", "label": "Amount due", "required": true, "min": 0, "max": 1000000 }
+      ]
+    }
+  ],
+  "checks": []
+}

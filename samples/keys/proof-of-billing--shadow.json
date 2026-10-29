@@ -1,0 +1,1 @@
+{"condition": "messy-script", "doc_type": "proof_of_billing", "fields": {"account_name": "Ma. Theresa Santos Reyes", "amount_due": 385, "billing_date": "2026-09-15", "service_address": "123 Purok 4, Barangay Baybayin, Linawan"}, "file": "samples/messy/proof-of-billing--shadow.png", "variant": "shadow"}
