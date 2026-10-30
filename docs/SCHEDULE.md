@@ -67,7 +67,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 9 photo quality / retake and wrong-document check done (blurry ID → retake, report card in birth_certificate slot → wrong document, reviewer approve works; tested on Vercel preview, Act A + B committed on branch step-9)
 - [x] Suri asks before it flags done and tested on the preview: the question names both values (e.g. Is "Ma. Theresa Santos Reyes" the same name as "Maria Theresa Santos Reyes"?), the answer is saved and survives re-uploads, there are no duplicate questions, and the reviewer sees the Q&A once under the check (branch step-9-questions)
 - [x] Security pass done and tested on preview: security headers (CSP production-only, no unsafe-eval), dev origins dev-only, no internal error text in the work log, test pages removed, rate limits (session 10/h per IP, uploads 60/h per IP, 10/h per document slot, 10/h per visitor, answers 20/h per visitor, global daily cap checked last), IPs hashed with RATE_LIMIT_SALT, Supabase anonymous sign-in limit raised to 300/h
-- [ ] Next: auto-delete after 7 days, compare with plain OCR, then (only if time allows) where it came from, SAM 3.1 crop
+- [x] Auto-delete demo uploads and their rows after 7 days done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)
+- [ ] Next: compare with plain OCR, then (only if time allows) where it came from, SAM 3.1 crop
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -125,3 +126,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 4 (Oct 30):** Step 9 photo quality / retake + wrong-document check shipped (Act A migration 0005, validation + decide-usability + reader + read-background; Act B routes/UI/review/run-checks/eval/docs; blurry ID → retake, report card in birth_certificate slot → wrong document, reviewer approve works on preview). **Next:** eval 5-way counts + remaining Should features.
 - **Day 4 (Oct 30):** built in 5 small Act tasks on branch step-9-questions (migration 0006, background question with template fallback, answer route with tests, screens); question must mention both values or the template is used.
 - **Day 4 (Oct 30):** Security pass done and tested on preview: security headers (CSP production-only, no unsafe-eval), dev origins dev-only, no internal error text in the work log, test pages removed, rate limits (session 10/h per IP, uploads 60/h per IP, 10/h per document slot, 10/h per visitor, answers 20/h per visitor, global daily cap checked last), IPs hashed with RATE_LIMIT_SALT, Supabase anonymous sign-in limit raised to 300/h.
+- **Day 4 (Oct 30):** Auto-delete done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)

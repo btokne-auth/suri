@@ -1,5 +1,7 @@
 # Suri Step 9D — Auto-delete demo uploads after 7 days
 
+Status: done (Oct 30)
+
 Approved plan — one Act on branch `step-9-autodelete`.
 
 ## Goal
