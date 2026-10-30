@@ -35,4 +35,4 @@ Suri (Tagalog for "examine") is a **document readiness check**: it helps people 
 
 ## Today
 
-See **"Where we are now"** in `docs/SCHEDULE.md`. Current step: **Day 1, step 1 (setup)**: add the docs and rule files, check `.gitignore`, first commit, connect to GitHub and push.
+See **"Where we are now"** in `docs/SCHEDULE.md`. Current step: **Day 4 (Oct 30), step 9**: photo quality / retake + wrong-document check (Act A and Act B done on branch step-9, tested on Vercel preview).

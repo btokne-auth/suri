@@ -10,6 +10,8 @@ const require = createRequire(import.meta.url);
 const { resolveProcess, resolveDocumentType } = require('../../../../lib/processes/resolve.js');
 const { buildRequirementFailReason, comparedLabel } = require('../../../../lib/checks/run-checks.js');
 const { isStaleReading, READING_TIMEOUT_MESSAGE } = require('../../../../lib/reading-timeout.js');
+const { retakeReason, wrongDocumentReason } = require('../../../../lib/decide-usability.js');
+const { getDocumentType } = require('../../../../lib/documents/index.js');
 export async function GET(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -30,7 +32,7 @@ export async function GET(request, ctx) {
   const reqDoc = req ? req.document : null;
   const reqDef = reqDoc ? resolveDocumentType(bundle, reqDoc) : null;
   const reqLabel = reqDef ? reqDef.label : reqDoc;
-  const { data: docs } = await admin.from('documents').select('id,doc_type,status,created_at').eq('submission_id', sid).order('created_at', { ascending: false });
+  const { data: docs } = await admin.from('documents').select('id,doc_type,status,created_at,looks_like,quality_problems').eq('submission_id', sid).order('created_at', { ascending: false });
   const list = docs || [];
   // Newest upload per type wins ("replaced"): older uploads stay in the
   // database and work log but never appear in the checklist or unlock
@@ -91,7 +93,9 @@ export async function GET(request, ctx) {
   for (const t of proc.documents) {
     const def = resolveDocumentType(bundle, t);
     const d = byType[t] || null;
-    const locked = reqDoc ? (t !== reqDoc && !gateOk) : false;
+    let locked = reqDoc ? (t !== reqDoc && !gateOk) : false;
+    // retake_needed / wrong_document / error never lock the slot (you can always re-upload)
+    if (d && (d.status === 'retake_needed' || d.status === 'wrong_document' || d.status === 'error')) locked = false;
     let action = 'upload';
     let reason = locked ? (sub.status === 'requirement_not_met' ? (req.message || 'Requirement not met.') : ('Upload your ' + reqLabel + ' first.')) : 'Not uploaded yet.';
     let status = d ? d.status : 'missing';
@@ -105,7 +109,41 @@ export async function GET(request, ctx) {
         reason = 'Still reading, please wait.';
       } else if (d.status === 'retake_needed') {
         action = 'retake';
-        reason = 'Photo unreadable, please retake.';
+        try {
+          reason = retakeReason({ problems: d.quality_problems || [] });
+        } catch {
+          reason = "We couldn't read most fields. Please retake the photo in better light.";
+        }
+      } else if (d.status === 'wrong_document') {
+        action = 'wrong document';
+        let looksLabel = d.looks_like || 'another document';
+        let expectedLabel = t;
+        try {
+          if (bundle && bundle.docs) {
+            if (d.looks_like && bundle.docs[d.looks_like] && bundle.docs[d.looks_like].label) looksLabel = bundle.docs[d.looks_like].label;
+            else if (d.looks_like) {
+              const ld = getDocumentType(d.looks_like);
+              if (ld && ld.label) looksLabel = ld.label;
+            }
+            if (bundle.docs[t] && bundle.docs[t].label) expectedLabel = bundle.docs[t].label;
+            else {
+              const ed = getDocumentType(t);
+              if (ed && ed.label) expectedLabel = ed.label;
+            }
+          } else {
+            if (d.looks_like) {
+              const ld = getDocumentType(d.looks_like);
+              if (ld && ld.label) looksLabel = ld.label;
+            }
+            const ed = getDocumentType(t);
+            if (ed && ed.label) expectedLabel = ed.label;
+          }
+        } catch {}
+        try {
+          reason = wrongDocumentReason({ expectedLabel, looksLikeLabel: looksLabel });
+        } catch {
+          reason = `This looks like a ${String(looksLabel).toLowerCase()}, not a ${String(expectedLabel).toLowerCase()}.`;
+        }
       } else if (d.status === 'error') {
         action = 'retake';
         // Timed-out reads (flipped above) get the friendly timeout message;

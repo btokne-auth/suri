@@ -42,8 +42,9 @@ Plain OCR on a serverless function runs out of time because the image work happe
 ## Credits and budget
 
 - **$150 Meta Model API credits** (active). The Billing page's Spend Limit is a **notification, not a hard cap**: spending past the credits is charged to the card.
-- Check usage on the Billing page **every night**. Stop at about **$120 used**. Keep **$30** untouched for Suri itself and the demo.
+- Check usage on the Billing page **every night**. Stop at about **$110 used**. Keep **at least $40** untouched for Suri itself and the demo. Cline runs on Baseten Muse Spark Open (meta-models/muse-spark-open-1026) from Oct 30; Meta credits reserved for Suri, keep at least $40 at submission.
 - **$100 Baseten credits granted** for the Muse Spark Open backup reader and the 3-way scorecard. Other partner credits (Modal, Fireworks) were requested but are **not guaranteed**. Never plan a step around them.
+- Step 9 work happens on branch step-9 and is merged to main by pull request after testing on the Vercel preview.
 - Price reference (`muse-spark-1.3`): $1.25 input / $0.15 cached input / $4.25 output per million tokens.
 
 ## Accounts
