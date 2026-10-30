@@ -5,9 +5,11 @@
 // Creates or returns the visitor's submission for a process_id.
 // Server only: getClaims() + admin write.
 
+import "server-only";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getClientIp, checkUploadIpLimit, secondsToNextHour } from "@/lib/rate-limit";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -34,6 +36,20 @@ export async function POST(request) {
   }
 
   const admin = createAdminClient();
+  // Act 2: same IP limit as uploads (60/hour per IP)
+  try {
+    const ip = getClientIp(request);
+    const rl = await checkUploadIpLimit(admin, ip);
+    if (!rl.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json(
+        { error: "Too many submissions. Please wait a bit and try again." },
+        { status: 429, headers: { "Retry-After": String(retry), "Cache-Control": "no-store" } }
+      );
+    }
+  } catch {
+    // if limit check fails, continue (don't leak)
+  }
   // Step 7c Part 2: builtins + owned saved_* (wrong owner -> Unknown process).
   const bundle = await resolveProcess(admin, processId, userId);
   if (!bundle) {
