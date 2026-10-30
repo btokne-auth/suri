@@ -69,7 +69,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Security pass done and tested on preview: security headers (CSP production-only, no unsafe-eval), dev origins dev-only, no internal error text in the work log, test pages removed, rate limits (session 10/h per IP, uploads 60/h per IP, 10/h per document slot, 10/h per visitor, answers 20/h per visitor, global daily cap checked last), IPs hashed with RATE_LIMIT_SALT, Supabase anonymous sign-in limit raised to 300/h
 - [x] Auto-delete demo uploads and their rows after 7 days done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)
 - [x] Compare with plain OCR done: reviewer button runs Tesseract in the browser (self-hosted, lazy-loaded), same scoring module as the eval; also fixed a hydration mismatch on the checklist
-- [ ] Next: eval rerun, then step 10 (design)
+- [x] Eval rerun done (Oct 30) fresh full 25: Meta 171/179 95.5% (8 retake, 0 wrong-doc, 0 wrong value, 5.8s avg), Baseten 173/179 96.6% (0 retake, 0 wrong-doc, 6 wrong value, 22.4s avg), OCR 135/179 75.4% 0.8s, poison PASS both; SCORECARD.md + scorecard.csv rebuilt with 3-way split and full-25 timing, previous Oct 29 kept; note: first phone billing photo was a report card and was correctly flagged as wrong document — replaced with a real photo of the bill
+- [ ] Next: step 10 (design)
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -130,3 +131,5 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 4 (Oct 30):** Security pass done and tested on preview: security headers (CSP production-only, no unsafe-eval), dev origins dev-only, no internal error text in the work log, test pages removed, rate limits (session 10/h per IP, uploads 60/h per IP, 10/h per document slot, 10/h per visitor, answers 20/h per visitor, global daily cap checked last), IPs hashed with RATE_LIMIT_SALT, Supabase anonymous sign-in limit raised to 300/h.
 - **Day 4 (Oct 30):** Auto-delete done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)
 - **Day 4 (Oct 30):** Compare with plain OCR done: reviewer button runs Tesseract in the browser (self-hosted, lazy-loaded), same scoring module as the eval; also fixed a hydration mismatch on the checklist
+- **Day 4 (Oct 30):** Eval rerun fresh full 25 (step 9 last item): Meta 171/179 95.5% (8 retake, 0 wrong-doc, 0 wrong value, 5.8s avg), Baseten 173/179 96.6% (0 retake, 0 wrong-doc, 6 wrong value, 22.4s avg), OCR 135/179 75.4% 0.8s, poison PASS both; SCORECARD.md + scorecard.csv rebuilt with 3-way split + full-25 timing, previous Oct 29 kept; 0 errors; note: first phone billing photo was a report card and was correctly flagged as wrong document — replaced with a real photo of the bill; next step 10 polish
+

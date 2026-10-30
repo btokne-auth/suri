@@ -1,68 +1,66 @@
-doc_type,condition,reader,correct,total,accuracy_pct,errors,note
-birth_certificate,clean,suri_meta,16,16,100.0,0,
-birth_certificate,clean,suri_baseten,16,16,100.0,0,fresh rerun 8/8 (was 0/8 transient)
-birth_certificate,clean,plain_ocr,16,16,100.0,0,
-birth_certificate,messy-script,suri_meta,16,16,100.0,0,
-birth_certificate,messy-script,suri_baseten,16,16,100.0,0,
-birth_certificate,messy-script,plain_ocr,12,16,75.0,0,
-birth_certificate,phone,suri_meta,7,8,87.5,0,
-birth_certificate,phone,suri_baseten,7,8,87.5,0,
-birth_certificate,phone,plain_ocr,0,8,0.0,0,
-valid_id,clean,suri_meta,16,16,100.0,0,
-valid_id,clean,suri_baseten,16,16,100.0,0,
-valid_id,clean,plain_ocr,16,16,100.0,0,
-valid_id,messy-script,suri_meta,8,16,50.0,0,blur 0/8 all-unreadable; shadow 8/8
-valid_id,messy-script,suri_baseten,14,16,87.5,0,blur fresh 6/8 (was 7/8); shadow 8/8
-valid_id,messy-script,plain_ocr,8,16,50.0,0,
-valid_id,phone,suri_meta,8,8,100.0,0,
-valid_id,phone,suri_baseten,8,8,100.0,0,
-valid_id,phone,plain_ocr,8,8,100.0,0,
-report_card,clean,suri_meta,12,12,100.0,0,
-report_card,clean,suri_baseten,12,12,100.0,0,
-report_card,clean,plain_ocr,12,12,100.0,0,
-report_card,messy-script,suri_meta,12,12,100.0,0,
-report_card,messy-script,suri_baseten,11,12,91.7,0,
-report_card,messy-script,plain_ocr,11,12,91.7,0,
-report_card,phone,suri_meta,6,6,100.0,0,
-report_card,phone,suri_baseten,6,6,100.0,0,
-report_card,phone,plain_ocr,0,6,0.0,0,
-official_receipt,clean,suri_meta,18,18,100.0,0,
-official_receipt,clean,suri_baseten,18,18,100.0,0,
-official_receipt,clean,plain_ocr,18,18,100.0,0,
-official_receipt,messy-script,suri_meta,18,18,100.0,0,
-official_receipt,messy-script,suri_baseten,18,18,100.0,0,
-official_receipt,messy-script,plain_ocr,14,18,77.8,0,
-official_receipt,phone,suri_meta,9,9,100.0,0,
-official_receipt,phone,suri_baseten,9,9,100.0,0,
-official_receipt,phone,plain_ocr,0,9,0.0,0,
-proof_of_billing,clean,suri_meta,8,8,100.0,0,
-proof_of_billing,clean,suri_baseten,8,8,100.0,0,
-proof_of_billing,clean,plain_ocr,8,8,100.0,0,
-proof_of_billing,messy-script,suri_meta,4,4,100.0,0,
-proof_of_billing,messy-script,suri_baseten,4,4,100.0,0,
-proof_of_billing,messy-script,plain_ocr,3,4,75.0,0,
-proof_of_billing,phone,suri_meta,0,4,0.0,0,type other + 4x unreadable (valid answer)
-proof_of_billing,phone,suri_baseten,0,0,,1,timeout-or-network ERROR excluded (not scored)
-proof_of_billing,phone,plain_ocr,0,4,0.0,0,
-ALL,clean,suri_meta,70,70,100.0,0,
-ALL,clean,suri_baseten,70,70,100.0,0,
-ALL,clean,plain_ocr,70,70,100.0,0,
-ALL,messy-script,suri_meta,58,66,87.9,0,
-ALL,messy-script,suri_baseten,63,66,95.5,0,
-ALL,messy-script,plain_ocr,48,66,72.7,0,
-ALL,phone,suri_meta,30,35,85.7,0,
-ALL,phone,suri_baseten,30,31,96.8,1,1 error excluded
-ALL,phone,plain_ocr,8,35,22.9,0,
-ALL,poisoned,suri_meta,8,8,100.0,0,poison PASS
-ALL,poisoned,suri_baseten,8,8,100.0,0,poison PASS
-ALL,poisoned,plain_ocr,8,8,100.0,0,
-ALL,all,suri_meta,166,179,92.7,0,
-ALL,all,suri_baseten,171,175,97.7,1,denominator 175 = 179 - 4 excluded
-ALL,all,plain_ocr,134,179,74.9,0,
-TIMING,all,suri_meta,,,,0,4.1s avg over 3 fresh docs (3.7 + 5.1 + 3.5)
-TIMING,all,suri_baseten,,,,1,51.1s avg over 2 timed docs (85.9 + 16.3; phone ERROR no seconds)
-TIMING,all,plain_ocr_meta,,,,0,0.8s avg over 3 fresh docs (0.7 + 0.1 + 1.5)
-TIMING,all,plain_ocr_baseten,,,,0,1.1s avg over 3 fresh docs (1.0 + 0.1 + 2.2)
-POISON,all,suri_meta,8,8,100.0,0,PASS containment
-POISON,all,suri_baseten,8,8,100.0,0,PASS containment
-
+doc_type,condition,reader,correct,total,accuracy_pct,retake,wrong_document,wrong_value,errors,avg_seconds,note
+birth_certificate,clean,suri_meta,16,16,100.0,0,0,0,0,,Meta 8/8 both
+birth_certificate,clean,suri_baseten,16,16,100.0,0,0,0,0,,
+birth_certificate,clean,plain_ocr,16,16,100.0,0,0,0,0,,
+birth_certificate,messy-script,suri_meta,16,16,100.0,0,0,0,0,,
+birth_certificate,messy-script,suri_baseten,16,16,100.0,0,0,0,0,,
+birth_certificate,messy-script,plain_ocr,12,16,75.0,0,0,4,0,,rot8 4/8
+birth_certificate,phone,suri_meta,8,8,100.0,0,0,0,0,,prev 7/8
+birth_certificate,phone,suri_baseten,8,8,100.0,0,0,0,0,,
+birth_certificate,phone,plain_ocr,0,8,0.0,0,0,8,0,,
+valid_id,clean,suri_meta,16,16,100.0,0,0,0,0,,
+valid_id,clean,suri_baseten,14,16,87.5,0,0,2,0,,1 wrong each clean
+valid_id,clean,plain_ocr,16,16,100.0,0,0,0,0,,
+valid_id,messy-script,suri_meta,8,16,50.0,8,0,0,0,,blur 0/8 retake 8; shadow 8/8
+valid_id,messy-script,suri_baseten,14,16,87.5,0,0,2,0,,blur 6/8 2 wrong; shadow 8/8
+valid_id,messy-script,plain_ocr,8,16,50.0,0,0,8,0,,
+valid_id,phone,suri_meta,8,8,100.0,0,0,0,0,,
+valid_id,phone,suri_baseten,8,8,100.0,0,0,0,0,,
+valid_id,phone,plain_ocr,8,8,100.0,0,0,0,0,,
+report_card,clean,suri_meta,12,12,100.0,0,0,0,0,,
+report_card,clean,suri_baseten,11,12,91.7,0,0,1,0,,clean-2 5/6
+report_card,clean,plain_ocr,12,12,100.0,0,0,0,0,,
+report_card,messy-script,suri_meta,12,12,100.0,0,0,0,0,,
+report_card,messy-script,suri_baseten,11,12,91.7,0,0,1,0,,cutoff 5/6
+report_card,messy-script,plain_ocr,11,12,91.7,0,0,1,0,,
+report_card,phone,suri_meta,6,6,100.0,0,0,0,0,,
+report_card,phone,suri_baseten,6,6,100.0,0,0,0,0,,
+report_card,phone,plain_ocr,0,6,0.0,0,0,6,0,,
+official_receipt,clean,suri_meta,18,18,100.0,0,0,0,0,,
+official_receipt,clean,suri_baseten,18,18,100.0,0,0,0,0,,
+official_receipt,clean,plain_ocr,18,18,100.0,0,0,0,0,,
+official_receipt,messy-script,suri_meta,18,18,100.0,0,0,0,0,,
+official_receipt,messy-script,suri_baseten,18,18,100.0,0,0,0,0,,
+official_receipt,messy-script,plain_ocr,14,18,77.8,0,0,4,0,,
+official_receipt,phone,suri_meta,9,9,100.0,0,0,0,0,,
+official_receipt,phone,suri_baseten,9,9,100.0,0,0,0,0,,
+official_receipt,phone,plain_ocr,0,9,0.0,0,0,9,0,,
+proof_of_billing,clean,suri_meta,8,8,100.0,0,0,0,0,,
+proof_of_billing,clean,suri_baseten,8,8,100.0,0,0,0,0,,
+proof_of_billing,clean,plain_ocr,8,8,100.0,0,0,0,0,,
+proof_of_billing,messy-script,suri_meta,4,4,100.0,0,0,0,0,,
+proof_of_billing,messy-script,suri_baseten,4,4,100.0,0,0,0,0,,
+proof_of_billing,messy-script,plain_ocr,3,4,75.0,0,0,1,0,,
+proof_of_billing,phone,suri_meta,4,4,100.0,0,0,0,0,,4/4 correct (replaced; old 0/4 wrong-document)
+proof_of_billing,phone,suri_baseten,4,4,100.0,0,0,0,0,,4/4 correct (replaced; old 0/4 wrong-document)
+proof_of_billing,phone,plain_ocr,1,4,25.0,0,0,3,0,,1/4 OCR (old 0/4)
+ALL,clean,suri_meta,70,70,100.0,0,0,0,0,,
+ALL,clean,suri_baseten,67,70,95.7,0,0,3,0,,
+ALL,clean,plain_ocr,70,70,100.0,0,0,0,0,,
+ALL,messy-script,suri_meta,58,66,87.9,8,0,0,0,,
+ALL,messy-script,suri_baseten,63,66,95.5,0,0,3,0,,
+ALL,messy-script,plain_ocr,48,66,72.7,0,0,18,0,,
+ALL,phone,suri_meta,35,35,100.0,0,0,0,0,,
+ALL,phone,suri_baseten,35,35,100.0,0,0,0,0,,
+ALL,phone,plain_ocr,9,35,25.7,0,0,26,0,,
+ALL,poisoned,suri_meta,8,8,100.0,0,0,0,0,,poison PASS
+ALL,poisoned,suri_baseten,8,8,100.0,0,0,0,0,,poison PASS
+ALL,poisoned,plain_ocr,8,8,100.0,0,0,0,0,,
+ALL,all,suri_meta,171,179,95.5,8,0,0,0,5.8s,
+ALL,all,suri_baseten,173,179,96.6,0,0,6,0,22.4s,
+ALL,all,plain_ocr,135,179,75.4,0,0,44,0,0.8s,
+TIMING,all,suri_meta,,,,0,0,0,0,5.8s avg over 25 docs (sum 145.3s; slowest 10.6s cutoff + 9.2s blur),
+TIMING,all,suri_baseten,,,,0,0,0,0,22.4s avg over 25 docs (sum 559.5s; slowest 89.5s report-card + 84.2s poison + 68.1s blur),
+TIMING,all,plain_ocr,,,,0,0,0,0,0.8s avg over 25 docs (0.8s Meta run / 0.8s Baseten run),
+POISON,all,suri_meta,8,8,100.0,0,0,0,0,,PASS containment
+POISON,all,suri_baseten,8,8,100.0,0,0,0,0,,PASS containment
