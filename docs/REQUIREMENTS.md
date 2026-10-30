@@ -60,7 +60,7 @@ Nothing new is added after the end of Day 3. 7c added on Day 3 before the scope 
 - [ ] Non-school sample: **official receipt** document type + a sample "receipt check" process, added with settings files only (checks: item amounts add up to the total, date is valid and not in the future, required fields present)
 - [ ] Auto-delete demo uploads and their rows after 7 days
 - [ ] Where it came from: tapping a field highlights its location on the photo (SAM 3.1 or the model's location note)
-- [ ] Suri asks before it flags: for an unclear or "probably same" result, Muse Spark writes one short question for the applicant; the answer is saved and shown to the reviewer. Only for fields listed in the settings; at most 3 questions per submission; an answer never changes an extracted value by itself
+- [x] Suri asks before it flags: for an unclear or "probably same" result, Muse Spark writes one short question for the applicant; the answer is saved and shown to the reviewer. Only for fields listed in the settings; at most 3 questions per submission; an answer never changes an extracted value by itself
 
 **Could (only if ahead)**
 - Plain-language reason for each flag in English or Tagalog

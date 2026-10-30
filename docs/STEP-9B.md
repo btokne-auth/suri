@@ -1,5 +1,7 @@
 # Suri Step 9B — Suri asks before it flags (Act 2)
 
+Status: done (Oct 30)
+
 Saved: Oct 30, 2026 (Manila). Day 4, step 9. Frozen plan per approval 2026-10-30.
 Branch: step-9-questions. First Act task saves this plan to docs/STEP-9B.md, then does migration + settings + pure logic + tests (Acts 2-5 originally, now merged Act1+2).
 
