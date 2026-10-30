@@ -23,7 +23,9 @@ export default function StartClient() {
         const b = list.filter((p) => p && typeof p.id === 'string' && p.id.indexOf('saved_') === 0);
         setSamples(a);
         setSaved(b);
-        if (list.length > 0) setPicked(list[0].id);
+        const wanted = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('process') : '';
+        if (wanted && list.some((p) => p && p.id === wanted)) setPicked(wanted);
+        else if (list.length > 0) setPicked(list[0].id);
       } catch { setSamples([]); setSaved([]); }
     })();
   }, []);
