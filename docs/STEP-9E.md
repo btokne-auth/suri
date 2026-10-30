@@ -92,10 +92,10 @@ Act 2 fills after `npm install` + `ls -lh` + `Get-FileHash`/`sha256sum`:
 
 | File in repo | Source npm package & path | Version | Size | SHA-256 (first 12) | License |
 |---|---|---|---|---|---|
-| `public/tesseract/worker.min.js` | `tesseract.js/dist/worker.min.js` | `7.0.0` | `__ kB` | `__` | Apache-2.0 |
-| `public/tesseract/tesseract-core.wasm.js` | `tesseract.js-core/...` | `__` | `__ kB` | `__` | Apache-2.0 |
-| `public/tesseract/tesseract-core.wasm` | `tesseract.js-core/...` | `__` | `__ kB` | `__` | Apache-2.0 |
-| `public/tesseract/lang-data/eng.traineddata.gz` | `@tesseract.js-data/eng/eng.traineddata.gz` | `__` | `__ MB` | `__` | Apache-2.0 |
+| `public/tesseract/worker.min.js` | `tesseract.js/dist/worker.min.js` | `7.0.0` | `108.7 KiB (111,307 bytes)` | `576B7DF7E339` | Apache-2.0 |
+| `public/tesseract/tesseract-core.wasm.js` | `tesseract.js-core/tesseract-core.wasm.js` | `7.0.0` | `4.47 MB (4,687,944 bytes)` | `0BC6CE3E5FBB` | Apache-2.0 |
+| `public/tesseract/tesseract-core.wasm` | `tesseract.js-core/tesseract-core.wasm` | `7.0.0` | `3.29 MB (3,449,168 bytes)` | `C7F5ACE62AC0` | Apache-2.0 |
+| `public/tesseract/lang-data/eng.traineddata.gz` | `@tesseract.js-data/eng/4.0.0/eng.traineddata.gz` | `1.0.0` | `10.42 MB (10,923,060 bytes)` | `ED350F3752F8` | Apache-2.0 |
 
 All Tesseract components + `eng` traineddata are **Apache 2.0**. Add one-line credit in `README.md` (polish Act): "Plain-OCR comparison uses Tesseract.js (Apache 2.0) with English data (`eng.traineddata.gz`) self-hosted under `/public/tesseract/` — no CDN."
 
