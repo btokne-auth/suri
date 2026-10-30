@@ -58,7 +58,7 @@ Nothing new is added after the end of Day 3. 7c added on Day 3 before the scope 
 - [ ] Wrong-document check (report card in the birth certificate slot)
 - [ ] Reviewer's **"Compare with plain OCR"** for a document (Tesseract.js in the browser); **3-way accuracy scorecard: plain OCR vs Muse Spark Open (Baseten) vs Muse Spark 1.3 (Meta API)** lives in the README and the video only, **never as a dashboard page**
 - [ ] Non-school sample: **official receipt** document type + a sample "receipt check" process, added with settings files only (checks: item amounts add up to the total, date is valid and not in the future, required fields present)
-- [ ] Auto-delete demo uploads and their rows after 7 days
+- [x] Auto-delete demo uploads and their rows after 7 days
 - [ ] Where it came from: tapping a field highlights its location on the photo (SAM 3.1 or the model's location note)
 - [x] Suri asks before it flags: for an unclear or "probably same" result, Muse Spark writes one short question for the applicant; the answer is saved and shown to the reviewer. Only for fields listed in the settings; at most 3 questions per submission; an answer never changes an extracted value by itself
 

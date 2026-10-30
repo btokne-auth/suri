@@ -64,6 +64,7 @@ Plain OCR on a serverless function runs out of time because the image work happe
 | Meta Model API key | `.env.local` + Vercel env vars | Server only; never `NEXT_PUBLIC_` |
 | Supabase secret key (SUPABASE_SECRET_KEY) | `.env.local` + Vercel env vars | Server only; bypasses row-level security |
 | RATE_LIMIT_SALT | `.env.local` + Vercel Production + Preview | Server only; never `NEXT_PUBLIC_`; value never in code / logs — used to hash IPs for rate limits |
+| Cron secret (CRON_SECRET) | `.env.local` + Vercel Production + Preview | Server only; never `NEXT_PUBLIC_`; Vercel sends as `Authorization: Bearer <CRON_SECRET>` for cron; crons only run on production |
 | Supabase URL + publishable key (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) | `.env.local` + Vercel env vars | May use `NEXT_PUBLIC_`; designed to be public, row-level security protects the data |
 
 - `.env*` is in `.gitignore`; `.env.local` must never appear in `git status`.
