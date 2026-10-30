@@ -215,6 +215,26 @@ describe('askClarification with mocked model call', () => {
     const q = await askClarification({ admin: null, fieldLabel: 'Full name', valueA: 'Ma. Santos', valueB: 'Maria Santos' });
     assert.equal(q, templateQuestion('Full name', 'Ma. Santos', 'Maria Santos'));
   });
+
+  it('rejects generic question without both values and uses template', async () => {
+    global.fetch = async () => ({
+      ok: true,
+      text: async () => JSON.stringify({ choices: [{ message: { content: 'What is your full name?' } }] }),
+    });
+    const q = await askClarification({ admin: null, fieldLabel: 'Full Name', valueA: 'Ma. Theresa Santos Reyes', valueB: 'Maria Theresa Santos Reyes' });
+    assert.equal(q, templateQuestion('Full Name', 'Ma. Theresa Santos Reyes', 'Maria Theresa Santos Reyes'));
+  });
+
+  it('accepts model question that contains both compared values', async () => {
+    const good = 'Is "Ma. Theresa Santos Reyes" the same name as "Maria Theresa Santos Reyes"?';
+    global.fetch = async () => ({
+      ok: true,
+      text: async () => JSON.stringify({ choices: [{ message: { content: good } }] }),
+    });
+    const q = await askClarification({ admin: null, fieldLabel: 'Full Name', valueA: 'Ma. Theresa Santos Reyes', valueB: 'Maria Theresa Santos Reyes' });
+    assert.equal(q, good);
+    assert.ok(validateQuestion(q).ok);
+  });
 });
 
 describe('generateClarificationsForSubmission background', () => {

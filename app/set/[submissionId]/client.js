@@ -240,7 +240,7 @@ export default function SetClient() {
             <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <h3>{row.label}</h3>
               <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
-              <p>Action: <b>{row.action}</b> — {row.reason}</p>
+              <p>Action: <b>{row.action}</b>{String(row.reason).trim().toLowerCase() !== String(row.action).trim().toLowerCase() ? ' — ' + row.reason : ''}</p>
               {row.action === 'please confirm' && (() => {
                 const clarList = row.clarifications || [];
                 const unanswered = clarList.filter(function (cl) { return cl && cl.answer == null && cl.question; });
@@ -331,11 +331,11 @@ export default function SetClient() {
                       <p><b>{f.field_key}</b>: {f.unreadable ? 'unreadable' : (f.value_text ?? '(empty)')} <small>({f.confidence})</small></p>
                       {fr.length === 0 && <p><small>no checks</small></p>}
                       {fr.map((c, i) => {
-                        const clar = c.clarification || (row.clarifications || []).find(function (cl) { return cl && cl.field_key === c.field_key; }) || null;
+                        const clar = c.clarification || null;
                         return (
                           <div key={i} style={{ maxWidth: '100%', overflowWrap: 'break-word' }}>
                             <p>{checkLine(c)}</p>
-                            {clar && (
+                            {clar && c.result === 'check' && (
                               <div style={{ marginTop: 6, padding: 8, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
                                 <p style={{ margin: '4px 0' }}><b>Suri asked:</b> {clar.question}</p>
                                 <p style={{ margin: '4px 0' }}><b>Applicant answered:</b> {clar.answer != null ? clar.answer : 'Not answered yet'}</p>
