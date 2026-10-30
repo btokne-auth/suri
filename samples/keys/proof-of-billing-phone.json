@@ -1,1 +1,1 @@
-{"condition": "phone", "doc_type": "proof_of_billing", "fields": {"account_name": "Ma. Theresa Santos Reyes", "amount_due": 385, "billing_date": "2026-09-15", "service_address": "123 Purok 4, Barangay Baybayin, Linawan"}, "file": "samples/phone/proof-of-billing-phone.jpg"}
+{"condition": "phone", "doc_type": "proof_of_billing", "fields": {"account_name": "Ma. Theresa Santos Reyes", "amount_due": 385, "billing_date": "2026-09-15", "service_address": "123 Purok 4, Barangay Baybayin, Linawan"}, "file": "samples/phone/proof-of-billing-phone.png"}

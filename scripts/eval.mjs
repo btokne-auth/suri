@@ -269,7 +269,8 @@ function loadDocDef(docTypeId) {
 }
 
 function validateLikeApp(docDef, modelOutput) {
-  const allowedIds = allDocumentIds();
+  const baseIds = allDocumentIds();
+  const allowedIds = docDef.isFixture ? [...new Set([...baseIds, docDef.id])] : baseIds;
   if (docDef.isFixture) {
     return validateExtractionWithDef(docDef, modelOutput, { dateFloor: "1900-01-01", allowedDocIds: allowedIds });
   }
@@ -456,7 +457,8 @@ async function main() {
       let suriSeconds = null;
       try {
         const t0 = Date.now();
-        const allowedIds = allDocumentIds();
+        const baseIds = allDocumentIds();
+        const allowedIds = docDef.isFixture ? [...new Set([...baseIds, docDef.id])] : baseIds;
         const modelOut = await readWithAppReader(docDef, prepared.bytes, prepared.mime, provider, apiKey, allowedIds);
         suriSeconds = Math.round(((Date.now() - t0) / 1000) * 10) / 10;
         let checked;
