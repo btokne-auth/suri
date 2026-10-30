@@ -88,7 +88,7 @@ export async function POST(request, ctx) {
   if (up.error) return NextResponse.json({ error: 'Could not save. Please try again.' }, { status: 500 });
   await admin.from('review_actions').insert({ document_id: docId, reviewer_id: userId, action: 'correct', field_key: fieldKey, old_value: oldValue, new_value: storeValue });
   await admin.from('work_log').insert({ submission_id: doc.submission_id, step_type: 'review_correct', message: (doc.doc_type + ' ' + fieldKey + ' corrected').slice(0, 200) });
-  if (doc.status === 'rejected' || doc.status === 'approved' || doc.status === 'retake_needed' || doc.status === 'error') {
+  if (doc.status === 'rejected' || doc.status === 'approved' || doc.status === 'retake_needed' || doc.status === 'wrong_document' || doc.status === 'error') {
     await admin.from('documents').update({ status: 'needs_review' }).eq('id', docId);
   }
   try { await runChecksForDocument({ admin, submissionId: doc.submission_id, documentId: docId }); }

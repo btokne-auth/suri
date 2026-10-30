@@ -238,7 +238,8 @@ export default function SetClient() {
             return (
             <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <h3>{row.label}</h3>
-              <p>Status: <b>{row.status}</b> — {row.reason}</p>
+              <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
+              <p>Action: <b>{row.action}</b> — {row.reason}</p>
               {!row.document_id && <p>(not uploaded yet)</p>}
               {row.document_id && (
               <div className="review-pair">
