@@ -1,5 +1,7 @@
 ﻿# Suri Step 9C — Security Pass Plan (Act 1 + Act 2)
 
+**Status: done (Oct 30)**
+
 > Branch: `step-9-security` · Approved plan. Full audit for REQUIREMENTS.md
 > Security pass (Day 7). Two small Act tasks, each < ~100k context.
 

@@ -35,4 +35,4 @@ Suri (Tagalog for "examine") is a **document readiness check**: it helps people 
 
 ## Today
 
-See **"Where we are now"** in `docs/SCHEDULE.md`. Current step: **Day 4 (Oct 30), step 9**: retake, wrong document and clarifying questions done; next: security pass.
+See **"Where we are now"** in `docs/SCHEDULE.md`. Current step: **Day 4 (Oct 30), step 9 security pass done**; next: auto-delete after 7 days, compare with plain OCR.
