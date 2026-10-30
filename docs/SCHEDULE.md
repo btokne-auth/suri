@@ -65,7 +65,8 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Step 7c done on the live URL (barangay clearance drafted on try 1, confirmed, good bill ready, old bill flagged)
 - [x] Step 8 scorecard done (25 docs: Suri Meta 166/179 92.7% 0 errors, Baseten 171/175 97.7% +1 timeout error on phone billing, plain OCR 134/179 74.9%, poison PASS both; fresh 3-file rerun + timing partial Meta 4.1s / Baseten 51.1s; docs/SCORECARD.md + docs/scorecard.csv)
 - [x] Step 9 photo quality / retake and wrong-document check done (blurry ID → retake, report card in birth_certificate slot → wrong document, reviewer approve works; tested on Vercel preview, Act A + B committed on branch step-9)
-- [ ] Next: step 9 remaining Should features (Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, security pass)
+- [x] Suri asks before it flags done and tested on the preview: the question names both values (e.g. Is "Ma. Theresa Santos Reyes" the same name as "Maria Theresa Santos Reyes"?), the answer is saved and survives re-uploads, there are no duplicate questions, and the reviewer sees the Q&A once under the check (branch step-9-questions)
+- [ ] Next: step 9 remaining Should features (SAM 3.1 crop, where it came from, compare with plain OCR, security pass)
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
@@ -81,6 +82,7 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - /setup confirm screen shows field keys (full_name (name, required)) instead of plain labels
 - / (front page) still shows the Next.js starter page; tab title says 'Create Next App'
 - wrong-document label reads 'report card (form 138 style)'
+- Reviewer header repeats 'answered, a person will decide' twice
 
 ## Known limits (for README)
 
@@ -118,3 +120,4 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 3 (Oct 29):** Step 8 full eval passed on all 25 samples (179 fields): Suri on Meta muse-spark-1.3 166/179 (92.7%), Muse Spark Open on Baseten 164/179 (91.6%), plain OCR 134/179 (74.9%), poison PASS on both; scorecard in docs/SCORECARD.md + docs/scorecard.csv. Timing not recorded (eval script logs no per-document seconds). **Next:** step 9 Should features.
 - **Day 3 (Oct 29):** Step 8 zeros diagnosed text-free + fresh 3-file rerun: (1) Meta blurred ID all-unreadable 0/8 confirmed (5.1s); (2) birth-cert-2 flipped to 8/8 both (transient, Meta 3.7s / Baseten 85.9s); (3) phone billing Meta 0/4 type-other (3.5s), Baseten timeout-or-network ERROR excluded. New headline: Meta 166/179 92.7% 0 errors, Baseten 171/175 97.7% +1 error, OCR 134/179 74.9%. eval.mjs now records error outcome + per-doc seconds with --file/--fresh; SCORECARD.md + scorecard.csv rebuilt with Errors/Timing/Diagnosis sections. **Next:** step 9 Should features.
 - **Day 4 (Oct 30):** Step 9 photo quality / retake + wrong-document check shipped (Act A migration 0005, validation + decide-usability + reader + read-background; Act B routes/UI/review/run-checks/eval/docs; blurry ID → retake, report card in birth_certificate slot → wrong document, reviewer approve works on preview). **Next:** eval 5-way counts + remaining Should features.
+- **Day 4 (Oct 30):** built in 5 small Act tasks on branch step-9-questions (migration 0006, background question with template fallback, answer route with tests, screens); question must mention both values or the template is used.

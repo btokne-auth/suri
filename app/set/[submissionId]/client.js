@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from 'react';
 const BTN = { padding: '12px 16px', minHeight: 48, fontSize: 16, width: '100%' };
 const SMALLBTN = { padding: '10px 12px', minHeight: 44, fontSize: 16, marginRight: 8, marginTop: 8 };
 const RESCOLOR = { match: '#0a0', check: '#a60', mismatch: '#a00', invalid: '#a00' };
+const CLARINP = { display: 'block', width: '100%', maxWidth: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', boxSizing: 'border-box' };
+const CLARBTN = { padding: '12px 16px', minHeight: 44, fontSize: 16, marginTop: 8, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', cursor: 'pointer', maxWidth: '100%' };
 async function shrinkForUpload(f) {
   if (!f || f.type === 'application/pdf' || !f.type.startsWith('image/')) return f;
   try {
@@ -42,6 +44,10 @@ export default function SetClient() {
   const [newValues, setNewValues] = useState({});
   const [overrideNote, setOverrideNote] = useState('');
   const [reviewBusy, setReviewBusy] = useState(null);
+  const [clarAnswers, setClarAnswers] = useState({});
+  const [clarErrors, setClarErrors] = useState({});
+  const [clarBusy, setClarBusy] = useState({});
+  const [clarSuccess, setClarSuccess] = useState({});
   const files = useRef({});
   async function load(id) {
     try {
@@ -131,6 +137,28 @@ export default function SetClient() {
     } catch { setMsg('Override failed. Try again.'); }
     setReviewBusy(null);
   }
+  async function sendClarAnswer(clarId) {
+    const raw = clarAnswers[clarId] || '';
+    setClarErrors((p) => ({ ...p, [clarId]: '' }));
+    setClarBusy((p) => ({ ...p, [clarId]: true }));
+    try {
+      const r = await fetch('/api/clarifications/' + encodeURIComponent(clarId), { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answer: raw }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const friendly = j.error || 'Could not save. Please try again.';
+        setClarErrors((p) => ({ ...p, [clarId]: friendly }));
+      } else {
+        setClarSuccess((p) => ({ ...p, [clarId]: true }));
+        setClarAnswers((p) => ({ ...p, [clarId]: '' }));
+        setClarErrors((p) => ({ ...p, [clarId]: '' }));
+        setMsg('Answered. A person will decide.');
+        load(sid);
+      }
+    } catch {
+      setClarErrors((p) => ({ ...p, [clarId]: 'Could not save. Check internet.' }));
+    }
+    setClarBusy((p) => ({ ...p, [clarId]: false }));
+  }
   if (!data) return (<main className="set-page"><h1>Your checklist</h1><p>{msg}</p></main>);
   const fieldsMap = data.fields || {};
   const checksAll = data.checks || [];
@@ -212,7 +240,54 @@ export default function SetClient() {
             <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               <h3>{row.label}</h3>
               <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
-              <p>Action: <b>{row.action}</b> — {row.reason}</p>
+              <p>Action: <b>{row.action}</b>{String(row.reason).trim().toLowerCase() !== String(row.action).trim().toLowerCase() ? ' — ' + row.reason : ''}</p>
+              {row.action === 'please confirm' && (() => {
+                const clarList = row.clarifications || [];
+                const unanswered = clarList.filter(function (cl) { return cl && cl.answer == null && cl.question; });
+                if (unanswered.length > 0) {
+                  return (
+                    <div style={{ marginTop: 10 }}>
+                      {unanswered.map(function (cl) {
+                        return (
+                          <div key={cl.id} style={{ border: '1px solid var(--foreground)', borderRadius: 8, padding: 12, marginBottom: 10, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                            <p style={{ margin: '4px 0' }}><b>Suri asks:</b> {cl.question}</p>
+                            <label style={{ display: 'block', marginTop: 8, maxWidth: '100%' }}>
+                              <span style={{ fontSize: 14 }}>Your answer (max 200):</span>
+                              <input value={clarAnswers[cl.id] || ''} onChange={function (e) { setClarAnswers(function (p) { return { ...p, [cl.id]: e.target.value }; }); }} maxLength={200} placeholder="Short answer, e.g. Ma. is short for Maria on my ID" style={CLARINP} />
+                            </label>
+                            {clarErrors[cl.id] && <p style={{ color: '#a00', fontSize: 14, marginTop: 6, overflowWrap: 'break-word' }}>{clarErrors[cl.id]}</p>}
+                            {clarSuccess[cl.id] && <p style={{ border: '1px solid #a60', background: '#FBF0D9', color: '#3D2F10', padding: 8, marginTop: 8, borderRadius: 6, maxWidth: '100%', overflowWrap: 'break-word' }}>Answered. A person will decide.</p>}
+                            <button type="button" onClick={function () { sendClarAnswer(cl.id); }} disabled={!!clarBusy[cl.id]} style={CLARBTN}>{clarBusy[cl.id] ? 'Sending...' : 'Send answer'}</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                }
+                const hasCheck = checksFor(row.document_id).some(function (c) { return c.result === 'check'; });
+                if (hasCheck || clarList.length === 0) {
+                  return <p style={{ marginTop: 10, padding: 8, border: '1px solid #a60', borderRadius: 8, background: '#FBF0D9', color: '#3D2F10', maxWidth: '100%', overflowWrap: 'break-word' }}>Suri is preparing a question…</p>;
+                }
+                return null;
+              })()}
+              {row.action === 'answered, a person will decide' && (() => {
+                const clarList = row.clarifications || [];
+                const answered = clarList.filter(function (cl) { return cl && cl.answer != null; });
+                if (answered.length === 0) return null;
+                return (
+                  <div style={{ marginTop: 10 }}>
+                    {answered.map(function (cl) {
+                      return (
+                        <div key={cl.id} style={{ border: '1px solid #a60', borderRadius: 8, padding: 12, marginBottom: 10, background: '#FBF0D9', color: '#3D2F10', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                          <p style={{ margin: '4px 0' }}><b>Suri asked:</b> {cl.question}</p>
+                          <p style={{ margin: '4px 0' }}><b>Your answer:</b> {cl.answer}</p>
+                          <p style={{ margin: '6px 0 0', fontSize: 14 }}>Answered. A person will decide.</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
               {checksFor(row.document_id).length > 0 && (
                 <ul>
                   {checksFor(row.document_id).map((c, i) => (<li key={i}>{checkLine(c)}</li>))}
@@ -255,7 +330,20 @@ export default function SetClient() {
                     <div key={f.field_key} style={{ borderTop: '1px solid #ccc', paddingTop: 8, marginTop: 8 }}>
                       <p><b>{f.field_key}</b>: {f.unreadable ? 'unreadable' : (f.value_text ?? '(empty)')} <small>({f.confidence})</small></p>
                       {fr.length === 0 && <p><small>no checks</small></p>}
-                      {fr.map((c, i) => (<p key={i}>{checkLine(c)}</p>))}
+                      {fr.map((c, i) => {
+                        const clar = c.clarification || null;
+                        return (
+                          <div key={i} style={{ maxWidth: '100%', overflowWrap: 'break-word' }}>
+                            <p>{checkLine(c)}</p>
+                            {clar && c.result === 'check' && (
+                              <div style={{ marginTop: 6, padding: 8, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                                <p style={{ margin: '4px 0' }}><b>Suri asked:</b> {clar.question}</p>
+                                <p style={{ margin: '4px 0' }}><b>Applicant answered:</b> {clar.answer != null ? clar.answer : 'Not answered yet'}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                       {correcting[ck] ? (
                         <div>
                           <label>New value: <input value={newValues[ck] || ''} onChange={(e) => setNewValues((p) => ({ ...p, [ck]: e.target.value }))} style={{ display: 'block', width: '100%', padding: 10, minHeight: 44, fontSize: 16, marginTop: 4 }} /></label>
