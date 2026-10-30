@@ -28,15 +28,9 @@ async function shrinkForUpload(f) {
   } catch { return f; }
 }
 export default function SetClient() {
-  const [sid] = useState(() => {
-    try {
-      if (typeof window === 'undefined') return '';
-      const parts = window.location.pathname.split('/').filter(Boolean);
-      return parts[parts.length - 1] || '';
-    } catch { return ''; }
-  });
+  const [sid, setSid] = useState('');
   const [data, setData] = useState(null);
-  const [msg, setMsg] = useState(sid ? 'Loading...' : 'Could not load.');
+  const [msg, setMsg] = useState('Loading...');
   const [busy, setBusy] = useState(null);
   const [view, setView] = useState('applicant');
   const [imgUrls, setImgUrls] = useState({});
@@ -61,6 +55,16 @@ export default function SetClient() {
       else setMsg(j.error || 'Could not load.');
     } catch { setMsg('Could not load. Check internet.'); }
   }
+  useEffect(() => {
+    try {
+      const parts = window.location.pathname.split('/').filter(Boolean);
+      const id = parts[parts.length - 1] || '';
+      if (id) setSid(id);
+      else setMsg('Could not load.');
+    } catch {
+      setMsg('Could not load.');
+    }
+  }, []);
   useEffect(() => {
     if (!sid) return;
     // Initial server sync + 3s polling (external system), not a cascading render.
@@ -248,17 +252,13 @@ export default function SetClient() {
       return;
     }
     let text = '';
-    let objectUrl = '';
     try {
-      objectUrl = URL.createObjectURL(blob);
-      const result = await worker.recognize(objectUrl);
+      const result = await worker.recognize(blob);
       text = result && result.data && result.data.text ? String(result.data.text) : '';
     } catch {
       setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'error', progress: 0, ocrText: null, perField: [], error: 'Could not run plain OCR on this file. Please try again.', foundCount: 0, total: 0 } }); });
-      if (objectUrl) try { URL.revokeObjectURL(objectUrl); } catch {}
       return;
     }
-    if (objectUrl) try { URL.revokeObjectURL(objectUrl); } catch {}
     let ocrFoundInTextFn = null;
     try {
       const mod2 = await import('@/lib/ocr-compare.js');
