@@ -12,6 +12,7 @@ const { buildRequirementFailReason, comparedLabel } = require('../../../../lib/c
 const { isStaleReading, READING_TIMEOUT_MESSAGE } = require('../../../../lib/reading-timeout.js');
 const { retakeReason, wrongDocumentReason } = require('../../../../lib/decide-usability.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
+const { buildPairKey } = require('../../../../lib/clarify.js');
 export async function GET(request, ctx) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -66,18 +67,72 @@ export async function GET(request, ctx) {
   let checks = [];
   let fieldsByDoc = {};
   let reviews = [];
+  let clarifications = [];
+  let clarificationMap = new Map();
+  try {
+    const { data: crs } = await admin.from('clarifications').select('id, submission_id, field_key, pair_key, question, answer, check_result_id, created_at').eq('submission_id', sid);
+    clarifications = crs || [];
+    for (const cl of clarifications) {
+      if (cl && cl.pair_key) clarificationMap.set(cl.pair_key, cl);
+    }
+  } catch {}
+  // Profile for reconstructing pair_key of profile comparisons (check vs profile)
+  let profileFullName = null;
+  let profileDob = null;
+  try {
+    const { data: prof } = await admin.from('profiles').select('given_name,middle_name,surname,suffix,birth_date').eq('user_id', owner.user_id).maybeSingle();
+    if (prof) {
+      const parts = [prof.given_name, prof.middle_name, prof.surname, prof.suffix].filter(function (v) { return v != null && String(v).trim() !== ''; });
+      if (parts.length > 0) profileFullName = parts.join(' ');
+      profileDob = prof.birth_date || null;
+    }
+  } catch {}
   if (docIds.length > 0) {
     const { data: cr } = await admin.from('check_results').select('document_id,compared_document_id,field_key,rule,result,reason').in('document_id', docIds);
     // Attach the "same as X" label from settings: null means the profile,
     // otherwise the compared document's type label (never hard-coded).
     const typeByDocId = {};
     for (const d of list) { if (d && d.id && !typeByDocId[d.id]) typeByDocId[d.id] = d.doc_type; }
-    checks = (cr || []).map((c) => ({ ...c, compared_label: comparedLabel(c.compared_document_id, typeByDocId, bundle.docs) }));
+    // First pass: basic checks with compared_label
+    const rawChecks = cr || [];
     const { data: ef } = await admin.from('extracted_fields').select('document_id,field_key,value_text,confidence,unreadable,found_on_page').in('document_id', docIds);
     for (const f of (ef || [])) {
       if (!fieldsByDoc[f.document_id]) fieldsByDoc[f.document_id] = [];
       fieldsByDoc[f.document_id].push(f);
     }
+    // Enrich checks with pair_key + clarification by recomputing with baseNormalize+sorted
+    checks = rawChecks.map(function (c) {
+      let pairKey = null;
+      let clarification = null;
+      try {
+        let leftVal = null;
+        let rightVal = null;
+        const leftFields = fieldsByDoc[c.document_id] || [];
+        const leftEntry = leftFields.find(function (ff) { return ff.field_key === c.field_key; });
+        leftVal = leftEntry ? leftEntry.value_text : null;
+        if (c.compared_document_id == null) {
+          if (c.field_key === 'date_of_birth') rightVal = profileDob;
+          else rightVal = profileFullName;
+        } else {
+          const rightFields = fieldsByDoc[c.compared_document_id] || [];
+          const rightEntry = rightFields.find(function (ff) { return ff.field_key === c.field_key; });
+          rightVal = rightEntry ? rightEntry.value_text : null;
+        }
+        if (leftVal != null && rightVal != null) {
+          pairKey = buildPairKey(c.field_key, leftVal, rightVal);
+          if (clarificationMap.has(pairKey)) clarification = clarificationMap.get(pairKey);
+        } else if (leftVal == null || rightVal == null) {
+          // Fallback: try match by field_key alone if only one clarification for that field exists
+          // This covers cases where extracted_fields missing but we still want to surface the question
+          const candidates = clarifications.filter(function (cl) { return cl.field_key === c.field_key; });
+          if (candidates.length === 1) {
+            clarification = candidates[0];
+            pairKey = clarification.pair_key || null;
+          }
+        }
+      } catch {}
+      return Object.assign({}, c, { compared_label: comparedLabel(c.compared_document_id, typeByDocId, bundle.docs), pair_key: pairKey, clarification: clarification });
+    });
     const { data: ra } = await admin.from('review_actions').select('document_id,action,field_key,old_value,new_value,created_at').in('document_id', docIds).order('created_at', { ascending: true });
     reviews = ra || [];
   }
@@ -154,8 +209,47 @@ export async function GET(request, ctx) {
         action = 'mismatch';
         reason = (mine.find((c) => c.result === 'mismatch') || {}).reason || 'Does not match.';
       } else if (hasCheck) {
-        action = 'please confirm';
-        reason = (mine.find((c) => c.result === 'check') || {}).reason || 'Please confirm.';
+        // Step 9B: if a clarification exists for this check pair, surface it.
+        // Unanswered -> please confirm with the question; answered -> answered phrase.
+        let docClarifications = [];
+        try {
+          const seen = new Set();
+          for (const ch of mine) {
+            if (ch.result !== 'check') continue;
+            const cl = ch.clarification;
+            if (cl && !seen.has(cl.id)) {
+              docClarifications.push(cl);
+              seen.add(cl.id);
+            }
+          }
+          if (docClarifications.length === 0) {
+            for (const ch of mine) {
+              if (ch.result !== 'check') continue;
+              const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key; });
+              for (const cand of cands) {
+                if (!seen.has(cand.id)) {
+                  docClarifications.push(cand);
+                  seen.add(cand.id);
+                }
+              }
+            }
+          }
+        } catch {}
+        // stash for rows push below
+        d._docClarifications = docClarifications;
+        if (docClarifications.length > 0) {
+          const unanswered = docClarifications.find(function (c) { return c.answer == null; });
+          if (unanswered) {
+            action = 'please confirm';
+            reason = unanswered.question;
+          } else {
+            action = 'answered, a person will decide';
+            reason = 'answered, a person will decide';
+          }
+        } else {
+          action = 'please confirm';
+          reason = (mine.find((c) => c.result === 'check') || {}).reason || 'Please confirm.';
+        }
       } else if (hasInvalid) {
         action = 'retake';
         reason = 'Could not compare, please retake.';
@@ -171,7 +265,35 @@ export async function GET(request, ctx) {
         reason = 'Rejected by reviewer. See work log.';
       }
     }
-    rows.push({ doc_type: t, label: def ? def.label : t, locked, status, action, reason, document_id: d ? d.id : null });
+    // Collect clarifications for this doc_type for the response.
+    // For hasCheck we already computed d._docClarifications; for other statuses gather similarly.
+    let docClarifications = (d && d._docClarifications) ? d._docClarifications : [];
+    if (!docClarifications || docClarifications.length === 0) {
+      try {
+        const mineAll = d ? checks.filter(function (c) { return c.document_id === d.id; }) : [];
+        const seen2 = new Set();
+        for (const ch of mineAll) {
+          const cl = ch.clarification;
+          if (cl && !seen2.has(cl.id)) {
+            docClarifications.push(cl);
+            seen2.add(cl.id);
+          }
+        }
+        // Fallback to any clarification with same field_key if pair_key didn't match (e.g., profile case with missing extracted value)
+        if (docClarifications.length === 0) {
+          for (const ch of mineAll) {
+            const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key; });
+            for (const cand of cands) {
+              if (!seen2.has(cand.id)) {
+                docClarifications.push(cand);
+                seen2.add(cand.id);
+              }
+            }
+          }
+        }
+      } catch {}
+    }
+    rows.push({ doc_type: t, label: def ? def.label : t, locked, status, action, reason, document_id: d ? d.id : null, clarifications: docClarifications });
   }
-  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: req ? (req.message || null) : null, requirement_document: reqDoc, override_note: overrideNote }, rows, checks, fields: fieldsByDoc, review_actions: reviews, work_log: workLog });
+  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: req ? (req.message || null) : null, requirement_document: reqDoc, override_note: overrideNote }, rows, checks, fields: fieldsByDoc, review_actions: reviews, work_log: workLog, clarifications });
 }
