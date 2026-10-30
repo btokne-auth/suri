@@ -63,7 +63,7 @@ export default function StartClient() {
       {samples.length === 0 && saved.length === 0 && <p>Loading processes...</p>}
       {samples.map(row)}
       {saved.length > 0 && (
-        <div style={{ marginTop: 16 }}>
+        <div id="your-checks" style={{ marginTop: 16 }}>
           <h2>Your checks</h2>
           {saved.map(row)}
         </div>
