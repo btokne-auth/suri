@@ -9,8 +9,14 @@ describe('lib/csp buildCsp', () => {
   const supabaseOrigin = 'https://xyzexample.supabase.co';
   const csp = buildCsp(supabaseOrigin);
 
-  it('has no unsafe-eval', () => {
-    assert.equal(csp.includes('unsafe-eval'), false, 'CSP must not contain unsafe-eval');
+  it('has no bare unsafe-eval but has wasm-unsafe-eval', () => {
+    assert.ok(csp.includes("'wasm-unsafe-eval'"), 'CSP must contain wasm-unsafe-eval');
+    const withoutWasm = csp.replace(/'wasm-unsafe-eval'/g, '');
+    assert.equal(withoutWasm.includes('unsafe-eval'), false, 'CSP must not contain bare unsafe-eval');
+  });
+
+  it('has worker-src self blob:', () => {
+    assert.ok(csp.includes("worker-src 'self' blob:"), 'CSP must contain worker-src self blob:');
   });
 
   it('has unsafe-inline', () => {
@@ -50,7 +56,8 @@ describe('lib/csp buildCsp', () => {
     assert.ok(csp.includes("style-src 'self' 'unsafe-inline' https://fonts.googleapis.com"));
     assert.ok(csp.includes("font-src 'self' https://fonts.gstatic.com data:"));
     assert.ok(csp.includes("media-src 'self' blob:"));
-    assert.ok(csp.includes("script-src 'self' 'unsafe-inline'"));
+    assert.ok(csp.includes("worker-src 'self' blob:"));
+    assert.ok(csp.includes("script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'"));
   });
 
   it('getSupabaseOrigin reads env correctly', () => {
@@ -72,7 +79,8 @@ describe('security headers prod-only', () => {
     assert.ok(prodCsp, 'production headers should include CSP');
     assert.equal(devCsp, undefined, 'development headers should not include CSP');
     assert.ok(prodCsp.value.includes("frame-ancestors 'none'"));
-    assert.equal(prodCsp.value.includes('unsafe-eval'), false);
+    assert.ok(prodCsp.value.includes("'wasm-unsafe-eval'"));
+    assert.equal(prodCsp.value.replace(/'wasm-unsafe-eval'/g, '').includes('unsafe-eval'), false);
     assert.ok(prodCsp.value.includes('unsafe-inline'));
   });
 
@@ -98,7 +106,8 @@ describe('security headers prod-only', () => {
     assert.ok(text.includes('development'), 'should guard allowedDevOrigins to development');
     const hasSpreadGuard = text.includes('...(') && text.includes('allowedDevOrigins');
     assert.ok(hasSpreadGuard, 'allowedDevOrigins should be conditional spread');
-    assert.equal(text.includes('unsafe-eval'), false, 'next.config must not contain unsafe-eval');
+    const textWithoutWasm = text.replace(/'wasm-unsafe-eval'/g, '');
+    assert.equal(textWithoutWasm.includes('unsafe-eval'), false, 'next.config must not contain bare unsafe-eval');
     assert.ok(text.includes('X-Content-Type-Options'), 'should set nosniff');
     assert.ok(text.includes('Referrer-Policy'), 'should set Referrer-Policy');
     assert.ok(text.includes('X-Frame-Options'), 'should set X-Frame-Options');

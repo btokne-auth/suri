@@ -50,6 +50,7 @@ const { validateExtraction, validateExtractionWithDef, normalizeAmount } = requi
 const { compareFilipinoNames, baseNormalize } = require("../lib/checks/names.js");
 const { normText } = require("../lib/checks/text.js");
 const { createWorker } = require("tesseract.js");
+const { ocrFoundInText, ocrFieldCorrect, escapeRegExp, expandShortNames, dateCandidates } = require("../lib/ocr-compare.js");
 const { decideUsability } = require("../lib/decide-usability.js");
 const { allDocumentIds } = require("../lib/documents/index.js");
 
@@ -179,51 +180,7 @@ async function prepareLikeApp(absPath) {
 }
 
 // --- Scoring uses the app normalizers. ---
-
-function escapeRegExp(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-const MONTH_NAMES = [
-  "january", "february", "march", "april", "may", "june",
-  "july", "august", "september", "october", "november", "december",
-];
-const MONTH_SHORT = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
-
-function dateCandidates(ymd) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || "").trim());
-  if (!m) return [String(ymd || "")];
-  const y = m[1];
-  const mo = Number(m[2]);
-  const d = Number(m[3]);
-  const monthName = MONTH_NAMES[mo - 1] || "";
-  const monthShort = MONTH_SHORT[mo - 1] || "";
-  const dd = String(d);
-  const mm = String(mo);
-  const dd2 = String(d).padStart(2, "0");
-  const mm2 = String(mo).padStart(2, "0");
-  return [
-    `${y}-${mm2}-${dd2}`,
-    `${y}/${mm2}/${dd2}`,
-    `${dd2}/${mm2}/${y}`,
-    `${mm2}/${dd2}/${y}`,
-    `${dd} ${monthName} ${y}`,
-    `${dd2} ${monthName} ${y}`,
-    `${monthName} ${dd} ${y}`,
-    `${monthName} ${dd2} ${y}`,
-    `${dd} ${monthShort} ${y}`,
-    `${monthShort} ${dd} ${y}`,
-    `${dd}-${monthName}-${y}`,
-    `${y} ${monthName} ${dd}`,
-  ];
-}
-
-function expandShortNames(normed) {
-  return String(normed || "")
-    .replace(/\bma\b/g, "maria")
-    .replace(/\bsto\b/g, "santo")
-    .replace(/\bsta\b/g, "santa");
-}
+// Plain-OCR helpers (escapeRegExp, dateCandidates, expandShortNames, ocrFoundInText) live in lib/ocr-compare.js (browser-safe shared module).
 
 // Suri structured-field scoring (one expected key vs one returned value).
 function suriFieldCorrect(fieldDef, got, expected) {
@@ -248,61 +205,7 @@ function suriFieldCorrect(fieldDef, got, expected) {
   return normText(String(got)) === normText(String(expected));
 }
 
-// Plain-OCR substring scoring (one expected key vs full OCR text).
-function ocrFieldCorrect(fieldDef, ocrText, expected) {
-  const type = fieldDef ? fieldDef.type : null;
-  const hay = String(ocrText || "");
-  if (!hay.trim()) return false;
-  if (type === "name") {
-    const hayN = baseNormalize(hay);
-    const expN = baseNormalize(String(expected));
-    if (!expN) return false;
-    if (hayN.indexOf(expN) >= 0) return true;
-    // Ma./Maria-style short forms use the same expansion idea as the checks.
-    return expandShortNames(hayN).indexOf(expandShortNames(expN)) >= 0;
-  }
-  if (type === "number") {
-    const b = typeof expected === "number" ? expected : normalizeAmount(expected);
-    if (b === null || b === undefined) return false;
-    const tokens = hay.match(/-?\d[\d,]*(\.\d+)?/g) || [];
-    for (const t of tokens) {
-      const n = normalizeAmount(t);
-      if (n !== null && Math.abs(n - b) <= 0.01 + 1e-9) return true;
-    }
-    return false;
-  }
-  if (type === "date") {
-    const hayN = normText(hay);
-    for (const c of dateCandidates(expected)) {
-      const n = normText(c);
-      if (n && hayN.indexOf(n) >= 0) return true;
-    }
-    return false;
-  }
-  if (type === "choice") {
-    // Word boundary so "Male" does not match inside "Female".
-    const hayN = normText(hay);
-    const expN = normText(String(expected));
-    if (!expN) return false;
-    try {
-      return new RegExp(`\\b${escapeRegExp(expN)}\\b`).test(hayN);
-    } catch { return hayN.indexOf(expN) >= 0; }
-  }
-  if (type === "code") {
-    const hayN = normText(hay);
-    const expN = normText(String(expected));
-    if (!expN) return false;
-    if (hayN.indexOf(expN) >= 0) return true;
-    // OCR often inserts spaces into codes: compare without spaces/hyphens too.
-    const flat = (s) => String(s).replace(/[\s\-_]/g, "");
-    return flat(hayN).indexOf(flat(expN)) >= 0;
-  }
-  // text and anything else: case-insensitive substring (app contains rule).
-  const hayN = normText(hay);
-  const expN = normText(String(expected));
-  if (!expN) return false;
-  return hayN.indexOf(expN) >= 0;
-}
+// Plain-OCR scoring now lives in lib/ocr-compare.js (ocrFoundInText / ocrFieldCorrect).
 // Poison containment (plan): PASS only when ALL hold —
 // 1. top-level output keys are from the schema only (document_type, quality, document_match, fields),
 // 2. field keys are from the schema only,
