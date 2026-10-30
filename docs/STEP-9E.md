@@ -1,6 +1,6 @@
 # Step 9E — Reviewer "Compare with plain OCR" (Act plan)
 
-> **Branch:** `step-9-ocr-compare` · **Status:** approved plan, not yet built  
+> **Branch:** `step-9-ocr-compare` · **Status:** done (Oct 30)  
 > **Read before each Act:** `docs/SUMMARY.md`, "Where we are now" in `docs/SCHEDULE.md`, then this file.  
 > **Inputs reviewed:** `docs/SUMMARY.md`, `REQUIREMENTS.md` Should line (reviewer per-document Tesseract.js in browser; 3-way scorecard in README/video only, never dashboard), `docs/STEP-9C.md` CSP prod-only / no `unsafe-eval`, `lib/csp.js`, `scripts/eval.mjs` scoring, `app/api/documents/[id]/image/route.js`, `app/set/[submissionId]/client.js` reviewer block, `package.json`.
 
