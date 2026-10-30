@@ -1,69 +1,111 @@
-import Image from "next/image";
+import HeroScan from "./components/HeroScan.js";
+import { listProcesses } from "../lib/processes/index.js";
+
+function shortTitle(id, label) {
+  if (id === "linawan_scholarship_intake") return "Linawan College scholarship";
+  if (id === "receipt_check") return "Official receipt check";
+  return label || id;
+}
+
+function shortDesc(id) {
+  if (id === "linawan_scholarship_intake") return "Valid ID, birth certificate, report card. Linawan residents only.";
+  if (id === "receipt_check") return "Items add up, VAT and total match, date is valid.";
+  return "";
+}
+
+function docCount(id, docs) {
+  const n = Array.isArray(docs) ? docs.length : 0;
+  return `${n} doc${n === 1 ? "" : "s"}`;
+}
 
 export default function Home() {
+  const processes = listProcesses();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.js
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="landing-wrap">
+      <div className="landing-shell">
+        <aside className="landing-sidebar">
+          <div className="landing-logo">
+            <svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true">
+              <path d="M2 8V2h6M20 2h6v6M26 20v6h-6M8 26H2v-6" fill="none" stroke="#8B8D94" strokeWidth="1.8" />
+              <text x="14" y="19.5" textAnchor="middle" fontFamily="Manrope" fontWeight="800" fontSize="16" fill="#EDEDEF">
+                S
+              </text>
+              <rect x="4" y="13.2" width="20" height="1.6" fill="#7B8CFF" />
+            </svg>
+            <span className="mono" style={{ fontSize: 17 }}>Suri</span>
+          </div>
+          <nav className="mono landing-nav" aria-label="Primary">
+            <a href="/start" className="active">
+              → start a check
+            </a>
+            <a href="/setup">set up your own</a>
+          </nav>
+          <div className="landing-sidebar-divider" />
+          <div className="landing-sidebar-foot">
+            <span>Built for the Meta Global AI Developer Hackathon.</span>
+          </div>
+        </aside>
+
+        <main className="landing-main">
+          <div className="landing-inner">
+            <div className="landing-hero">
+              <div className="landing-hero-scan">
+                <HeroScan />
+                <span className="mono" style={{ fontSize: 11, letterSpacing: ".06em", color: "#8B8D94", height: 16 }}>
+                  <span className="type">ANALYSIS COMPLETE · 2 READY · 1 TO CONFIRM</span>
+                </span>
+              </div>
+              <div className="landing-hero-copy">
+                <h1 className="landing-title">Suri</h1>
+                <p className="landing-copy">
+                  Check your papers before the office does. Take a photo of each document. Suri reads it, checks it against your
+                  other papers and the office&apos;s rules, and tells you what to fix.
+                </p>
+                <p className="landing-copy-muted">It never guesses. When it isn&apos;t sure, it asks. A person always decides.</p>
+              </div>
+            </div>
+
+            <div className="landing-stats">
+              <div className="landing-stat">
+                <span className="landing-stat-value">95.5%</span>
+                <span className="landing-stat-label">FIELDS READ RIGHT</span>
+              </div>
+              <div className="landing-stat">
+                <span className="landing-stat-value">0</span>
+                <span className="landing-stat-label">WRONG VALUES</span>
+              </div>
+              <div className="landing-stat">
+                <span className="landing-stat-value">
+                  100% <span className="landing-stat-vs">vs 26%</span>
+                </span>
+                <span className="landing-stat-label">PHONE PHOTOS VS PLAIN OCR</span>
+              </div>
+            </div>
+
+            <section className="landing-section">
+              <div className="landing-section-head">
+                <span className="landing-section-title">01 — start a check</span>
+                <a href="/setup" className="landing-section-link">
+                  SET UP YOUR OWN →
+                </a>
+              </div>
+              {processes.map((p) => (
+                <a key={p.id} href={`/start?process=${encodeURIComponent(p.id)}`} className="landing-process-row">
+                  <span className="landing-process-main">
+                    <span className="landing-process-name">{shortTitle(p.id, p.label)}</span>
+                    <span className="landing-process-desc">{shortDesc(p.id) || p.label}</span>
+                  </span>
+                  <span className="landing-process-docs">{docCount(p.id, p.documents)}</span>
+                  <span className="landing-process-cta">start →</span>
+                </a>
+              ))}
+            </section>
+
+            <p className="landing-footer">SAMPLE DOCUMENTS ONLY · UPLOADS DELETED AFTER 7 DAYS</p>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

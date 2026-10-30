@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Suri landing</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D0E10}
+a{color:#EDEDEF}a:hover{color:#FFFFFF}
+.mono{font-family:'JetBrains Mono',monospace}
+@keyframes beam{0%,9%{transform:translateY(0);opacity:0}10%{opacity:1}36%{transform:translateY(260px);opacity:1}40%,100%{transform:translateY(260px);opacity:0}}
+.beam{animation:beam 8s cubic-bezier(.45,.05,.55,.95) infinite}
+@keyframes lock{0%{transform:scale(1.14);opacity:0}4%{opacity:1}9%,86%{transform:scale(1);opacity:1}93%,100%{transform:scale(1.14);opacity:0}}
+.lock{transform-box:fill-box;transform-origin:center;animation:lock 8s cubic-bezier(.2,.8,.2,1) infinite}
+@keyframes on{0%{opacity:0}2%,85%{opacity:1}90%,100%{opacity:0}}
+@keyframes off{0%{opacity:1}2%,85%{opacity:0}90%,100%{opacity:1}}
+@keyframes val{0%{opacity:0;fill:#A3AEFF}1.5%{opacity:1;fill:#C9D0FF}7%{fill:#D7D8DC}85%{opacity:1;fill:#D7D8DC}90%,100%{opacity:0;fill:#D7D8DC}}
+@keyframes draw{0%{stroke-dashoffset:100}4%,85%{stroke-dashoffset:0}90%,100%{stroke-dashoffset:100}}
+@keyframes type{0%{width:0}10%,71%{width:46ch}75%,100%{width:0}}
+.on{opacity:0;animation:on 8s ease-out infinite both}
+.off{animation:off 8s ease-out infinite both}
+.val{opacity:0;animation:val 8s ease-out infinite both}
+.draw{stroke-dasharray:100;stroke-dashoffset:100;animation:draw 8s ease-out infinite both}
+.type{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;width:0;animation:type 8s steps(42,end) 2.45s infinite both}
+@media (prefers-reduced-motion: reduce){.beam{animation:none;opacity:0}.lock{animation:none}.on,.val{animation:none;opacity:1}.off{animation:none;opacity:0}.draw{animation:none;stroke-dashoffset:0}.type{animation:none;width:46ch}}
+</style>
+</helmet>
+<div style="width:1280px;height:960px;box-sizing:border-box;background:#0D0E10;color:#EDEDEF;font-family:Manrope,system-ui,sans-serif;display:flex">
+
+<aside style="width:240px;flex:none;border-right:1px solid #1E1F23;padding:28px;display:flex;flex-direction:column;gap:26px;box-sizing:border-box">
+<div style="display:flex;align-items:center;gap:9px">
+<svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><path d="M2 8V2h6M20 2h6v6M26 20v6h-6M8 26H2v-6" fill="none" stroke="#8B8D94" stroke-width="1.8"/><text x="14" y="19.5" text-anchor="middle" font-family="Manrope" font-weight="800" font-size="16" fill="#EDEDEF">S</text><rect x="4" y="13.2" width="20" height="1.6" fill="#7B8CFF"/></svg>
+<span class="mono" style="font-size:17px">Suri</span>
+</div>
+<nav class="mono" style="display:flex;flex-direction:column;gap:14px;font-size:14px">
+<a href="#" style="color:#EDEDEF;text-decoration:none">→ start a check</a>
+<a href="#" style="color:#8B8D94;text-decoration:none">set up your own</a>
+<a href="#" style="color:#8B8D94;text-decoration:none">your checks</a>
+</nav>
+<div style="height:1px;background:#1E1F23"></div>
+<nav class="mono" style="display:flex;flex-direction:column;gap:14px;font-size:14px">
+<a href="#" style="color:#8B8D94;text-decoration:none">how it works</a>
+<a href="#" style="color:#8B8D94;text-decoration:none">accuracy</a>
+<a href="#" style="color:#8B8D94;text-decoration:none">privacy</a>
+</nav>
+<div style="margin-top:auto;display:flex;flex-direction:column;gap:14px">
+<div role="group" aria-label="Theme" style="display:flex;gap:4px;border:1px solid #26272C;border-radius:999px;padding:3px;align-self:flex-start">
+<button aria-label="Dark theme" style="width:30px;height:30px;border:0;border-radius:999px;background:#26272C;color:#EDEDEF;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+<button aria-label="Light theme" style="width:30px;height:30px;border:0;border-radius:999px;background:transparent;color:#8B8D94;display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg></button>
+</div>
+<span style="font-size:13px;color:#8B8D94;line-height:1.6">Built for the Meta Global AI Developer Hackathon.</span>
+</div>
+</aside>
+
+<main style="flex:1;padding:72px 0;display:flex;justify-content:center">
+<div style="width:780px;display:flex;flex-direction:column;gap:56px">
+
+<div style="display:flex;gap:44px;align-items:center">
+<div style="width:360px;flex:none;display:flex;flex-direction:column;gap:10px">
+<svg width="360" height="320" aria-hidden="true">
+<defs>
+<pattern id="h1" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="0.7" fill="#25272C"/></pattern>
+<pattern id="h3" width="5" height="5" patternUnits="userSpaceOnUse"><circle cx="2.5" cy="2.5" r="1" fill="#55575E"/></pattern>
+<linearGradient id="trail" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7B8CFF" stop-opacity="0"/><stop offset="1" stop-color="#7B8CFF" stop-opacity=".32"/></linearGradient>
+<filter id="blur" x="-10%" y="-200%" width="120%" height="500%"><feGaussianBlur stdDeviation="2.4"/></filter>
+</defs>
+<rect width="360" height="320" fill="url(#h1)"/>
+<rect x="26" y="40" width="196" height="232" fill="#0D0E10" opacity=".85"/>
+<g font-family="JetBrains Mono" font-size="9" fill="#3A3C42" style="white-space:pre">
+<rect x="30" y="44" width="188" height="230" fill="none" stroke="#33353B" stroke-width="1"/>
+<rect x="42" y="78" width="164" height="1" fill="#26282D"/>
+<rect x="42" y="224" width="164" height="1" fill="#26282D"/>
+<text class="off" x="42" y="112" fill="#24262B" style="animation-delay:1.38s">░ ▒░ ░░▒ ░ ▒▒░ ░▒ ░ ▒░░ ▒ ░▒</text>
+<text class="off" x="42" y="140" fill="#24262B" style="animation-delay:1.61s">▒░ ░ ▒▒░ ░▒░ ░ ▒ ░░▒ ░▒ ░ ▒</text>
+<text class="off" x="42" y="168" fill="#24262B" style="animation-delay:1.84s">░▒ ░▒░ ░ ▒▒ ░░ ▒░ ░▒░ ▒ ░░▒</text>
+<text class="off" x="42" y="196" fill="#24262B" style="animation-delay:2.07s">▒ ░░▒ ░▒ ░ ▒░▒ ░ ░▒▒ ░ ▒░ ░</text>
+<text class="off" x="42" y="242" fill="#24262B" style="animation-delay:2.46s">░▒░ ▒ ░░▒▒ ░ ▒░ ░▒ ░░ ▒▒░ ░</text>
+<text class="off" x="42" y="256" fill="#24262B" style="animation-delay:2.57s">▒ ░▒ ░░ ▒▒░ ░ ▒░▒ ░ ░▒ ░▒ ▒</text>
+<text x="42" y="98" fill="#55575E">NAME</text>
+<text x="42" y="126" fill="#55575E">BORN</text>
+<text x="42" y="154" fill="#55575E">SEX</text>
+<text x="42" y="182" fill="#55575E">CITY</text>
+<text x="42" y="210" fill="#55575E">ID NO</text>
+</g>
+<g class="lock"><path d="M12 50V18h32M216 18h32v32M248 270v32h-32M44 302H12v-32" fill="none" stroke="#9A9CA3" stroke-width="1.6"/></g>
+
+<g font-family="JetBrains Mono" font-size="9">
+<text class="off" x="42" y="66" fill="#3A3C42" style="animation-delay:.99s">▒░▒▒░░▒▒▒░░▒▒░▒░▒░</text>
+<text class="val" x="42" y="66" font-size="9.5" letter-spacing=".6" style="animation-delay:.99s">LINAWAN VOTER ID</text>
+
+<text class="off" x="90" y="98" fill="#3A3C42" style="animation-delay:1.26s">░▒▒░▒░░▒▒▒░▒░▒░░▒▒</text>
+<text class="val" x="90" y="98" style="animation-delay:1.26s">Ma. Theresa S. Reyes</text>
+
+<text class="off" x="90" y="126" fill="#3A3C42" style="animation-delay:1.49s">▒░░▒▒░▒░▒░</text>
+<text class="val" x="90" y="126" style="animation-delay:1.49s">2007-03-14</text>
+
+<text class="off" x="90" y="154" fill="#3A3C42" style="animation-delay:1.73s">░▒▒░▒░</text>
+<text class="val" x="90" y="154" style="animation-delay:1.73s">Female</text>
+
+<text class="off" x="90" y="182" fill="#3A3C42" style="animation-delay:1.96s">▒░▒▒░░▒</text>
+<text class="val" x="90" y="182" style="animation-delay:1.96s">Linawan</text>
+
+<text class="off" x="90" y="210" fill="#3A3C42" style="animation-delay:2.19s">░▒░▒▒░▒░░▒▒░▒░</text>
+<text class="val" x="90" y="210" style="animation-delay:2.19s">LWN-VOT-004827</text>
+</g>
+
+<g font-family="JetBrains Mono" font-size="8.5" letter-spacing=".8">
+<line class="draw" pathLength="100" x1="200" y1="95" x2="252" y2="95" stroke="#F0C46A" stroke-width="1" style="animation-delay:1.4s"/>
+<g class="on" style="animation-delay:1.55s"><circle cx="200" cy="95" r="2.2" fill="#F0C46A"/><rect x="252" y="86" width="100" height="18" fill="#0D0E10" stroke="#4A3E1F"/><text x="259" y="98" fill="#F0C46A">NAME ▪ CONFIRM</text></g>
+<line class="draw" pathLength="100" x1="150" y1="123" x2="252" y2="123" stroke="#7FD6A6" stroke-width="1" style="animation-delay:1.65s"/>
+<g class="on" style="animation-delay:1.8s"><circle cx="150" cy="123" r="2.2" fill="#7FD6A6"/><rect x="252" y="114" width="100" height="18" fill="#0D0E10" stroke="#24493A"/><text x="259" y="126" fill="#7FD6A6">BIRTH ✓ MATCH</text></g>
+<line class="draw" pathLength="100" x1="134" y1="179" x2="252" y2="179" stroke="#7FD6A6" stroke-width="1" style="animation-delay:2.1s"/>
+<g class="on" style="animation-delay:2.25s"><circle cx="134" cy="179" r="2.2" fill="#7FD6A6"/><rect x="252" y="170" width="100" height="18" fill="#0D0E10" stroke="#24493A"/><text x="259" y="182" fill="#7FD6A6">CITY ✓ PASSED</text></g>
+</g>
+
+<g class="beam">
+<rect x="12" y="-14" width="236" height="44" fill="url(#trail)"/>
+<rect x="12" y="28.5" width="236" height="4" fill="#7B8CFF" opacity=".7" filter="url(#blur)"/>
+<rect x="12" y="30" width="236" height="1.2" fill="#EEF0FF"/>
+<rect x="8" y="25" width="2" height="11" fill="#C9D0FF"/><rect x="250" y="25" width="2" height="11" fill="#C9D0FF"/>
+<text x="244" y="25" text-anchor="end" font-family="JetBrains Mono" font-size="7" letter-spacing="1.4" fill="#A3AEFF">SCANNING</text>
+</g>
+</svg>
+<span class="mono" style="font-size:11px;letter-spacing:.06em;color:#8B8D94;height:16px"><span class="type">ANALYSIS COMPLETE · 2 READY · 1 TO CONFIRM</span></span>
+</div>
+<div style="display:flex;flex-direction:column;gap:18px">
+<h1 class="mono" style="margin:0;font-size:52px;font-weight:400;letter-spacing:-0.02em">Suri</h1>
+<p style="margin:0;font-size:17px;line-height:1.65;color:#C9CACF">Check your papers before the office does. Take a photo of each document. Suri reads it, checks it against your other papers and the office's rules, and tells you what to fix.</p>
+<p style="margin:0;font-size:17px;line-height:1.65;color:#8B8D94">It never guesses. When it isn't sure, it asks. A person always decides.</p>
+<div class="mono" style="display:flex;gap:20px;font-size:13px;color:#8B8D94"><a href="#" style="color:#8B8D94;text-decoration:none">how it works ↗</a><a href="#" style="color:#8B8D94;text-decoration:none">scorecard ↗</a><a href="#" style="color:#8B8D94;text-decoration:none">github ↗</a></div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #1E1F23;border-bottom:1px solid #1E1F23">
+<div style="padding:22px 0;display:flex;flex-direction:column;gap:8px"><span class="mono" style="font-size:26px">95.5%</span><span class="mono" style="font-size:11px;letter-spacing:.12em;color:#8B8D94">FIELDS READ RIGHT</span></div>
+<div style="padding:22px 0 22px 24px;border-left:1px solid #1E1F23;display:flex;flex-direction:column;gap:8px"><span class="mono" style="font-size:26px">0</span><span class="mono" style="font-size:11px;letter-spacing:.12em;color:#8B8D94">WRONG VALUES</span></div>
+<div style="padding:22px 0 22px 24px;border-left:1px solid #1E1F23;display:flex;flex-direction:column;gap:8px"><span class="mono" style="font-size:26px">100% <span style="font-size:14px;color:#5C5E66">vs 26%</span></span><span class="mono" style="font-size:11px;letter-spacing:.12em;color:#8B8D94">PHONE PHOTOS VS PLAIN OCR</span></div>
+</div>
+
+<section style="display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid #1E1F23">
+<span class="mono" style="font-size:16px;color:#8B8D94">01 — start a check</span>
+<a href="#" class="mono" style="font-size:11px;letter-spacing:.12em;color:#8B8D94;text-decoration:none">SET UP YOUR OWN →</a>
+</div>
+<a href="#" style="display:grid;grid-template-columns:1fr auto auto;gap:24px;align-items:center;padding:18px 0;border-bottom:1px solid #1E1F23;text-decoration:none;color:#EDEDEF">
+<span style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:16px">Linawan College scholarship</span><span style="font-size:14px;color:#8B8D94">Valid ID, birth certificate, report card. Linawan residents only.</span></span>
+<span class="mono" style="font-size:12px;color:#5C5E66">3 docs</span><span class="mono" style="font-size:13px">start →</span>
+</a>
+<a href="#" style="display:grid;grid-template-columns:1fr auto auto;gap:24px;align-items:center;padding:18px 0;border-bottom:1px solid #1E1F23;text-decoration:none;color:#EDEDEF">
+<span style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:600;font-size:16px">Official receipt check</span><span style="font-size:14px;color:#8B8D94">Items add up, VAT and total match, date is valid.</span></span>
+<span class="mono" style="font-size:12px;color:#5C5E66">1 doc</span><span class="mono" style="font-size:13px">start →</span>
+</a>
+</section>
+
+<p class="mono" style="margin:0;font-size:11px;letter-spacing:.1em;color:#5C5E66">SAMPLE DOCUMENTS ONLY · UPLOADS DELETED AFTER 7 DAYS</p>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
