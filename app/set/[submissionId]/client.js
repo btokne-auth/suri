@@ -48,6 +48,9 @@ export default function SetClient() {
   const [clarErrors, setClarErrors] = useState({});
   const [clarBusy, setClarBusy] = useState({});
   const [clarSuccess, setClarSuccess] = useState({});
+  const [ocrByDoc, setOcrByDoc] = useState({});
+  const ocrWorkerRef = useRef(null);
+  const ocrWorkerPromiseRef = useRef(null);
   const files = useRef({});
   async function load(id) {
     try {
@@ -81,6 +84,14 @@ export default function SetClient() {
     }
     // imgUrls in deps so already-loaded images are skipped.
   }, [view, data, imgUrls]);
+  useEffect(() => {
+    return () => {
+      const w = ocrWorkerRef.current;
+      if (w && typeof w.terminate === 'function') {
+        try { w.terminate(); } catch {}
+      }
+    };
+  }, []);
   async function upload(t) {
     const picked = files.current[t]?.files?.[0];
     if (!picked) { setMsg('Choose a file for ' + t + ' first.'); return; }
@@ -158,6 +169,127 @@ export default function SetClient() {
       setClarErrors((p) => ({ ...p, [clarId]: 'Could not save. Check internet.' }));
     }
     setClarBusy((p) => ({ ...p, [clarId]: false }));
+  }
+  const OCR_BUILTIN_DEFS = {
+    birth_certificate: { id: 'birth_certificate', label: 'Birth certificate', fields: [{ key: 'full_name', type: 'name' }, { key: 'sex', type: 'choice' }, { key: 'date_of_birth', type: 'date' }, { key: 'place_of_birth', type: 'text' }, { key: 'mother_maiden_name', type: 'name' }, { key: 'father_name', type: 'name' }, { key: 'registry_number', type: 'code' }, { key: 'date_issued', type: 'date' }] },
+    valid_id: { id: 'valid_id', label: 'Valid ID', fields: [{ key: 'full_name', type: 'name' }, { key: 'date_of_birth', type: 'date' }, { key: 'sex', type: 'choice' }, { key: 'address_line', type: 'text' }, { key: 'address_city_municipality', type: 'text' }, { key: 'address_province', type: 'text' }, { key: 'id_number', type: 'code' }, { key: 'date_issued', type: 'date' }] },
+    report_card: { id: 'report_card', label: 'Report card', fields: [{ key: 'full_name', type: 'name' }, { key: 'school_name', type: 'text' }, { key: 'school_year', type: 'code' }, { key: 'grade_level', type: 'choice' }, { key: 'adviser_name', type: 'name' }, { key: 'general_average', type: 'number' }] },
+    official_receipt: { id: 'official_receipt', label: 'Official receipt', fields: [{ key: 'store_name', type: 'text' }, { key: 'receipt_number', type: 'code' }, { key: 'receipt_date', type: 'date' }, { key: 'item_1_amount', type: 'number' }, { key: 'item_2_amount', type: 'number' }, { key: 'item_3_amount', type: 'number' }, { key: 'subtotal_amount', type: 'number' }, { key: 'vat_amount', type: 'number' }, { key: 'total_amount', type: 'number' }] },
+  };
+  function ocrGetFieldDef(docType, fieldKey) {
+    const d = OCR_BUILTIN_DEFS[docType];
+    if (d && Array.isArray(d.fields)) {
+      const f = d.fields.find(function (x) { return x.key === fieldKey; });
+      if (f) return f;
+    }
+    const k = String(fieldKey || '').toLowerCase();
+    if (k.includes('name')) return { key: fieldKey, type: 'name' };
+    if (k.includes('date')) return { key: fieldKey, type: 'date' };
+    if (k.includes('amount') || k.includes('total') || k.includes('subtotal') || k.includes('vat') || k === 'general_average') return { key: fieldKey, type: 'number' };
+    if (k === 'sex' || k === 'grade_level') return { key: fieldKey, type: 'choice' };
+    if (k.includes('number') || k.includes('registry') || k.includes('code')) return { key: fieldKey, type: 'code' };
+    return { key: fieldKey, type: 'text' };
+  }
+  async function handleOcrCompare(docId, docType) {
+    if (!docId) return;
+    const existing = ocrByDoc[docId];
+    if (existing && existing.status === 'loading') return;
+    setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'loading', progress: 0, ocrText: null, perField: [], error: null, foundCount: 0, total: 0 } }); });
+    let worker = ocrWorkerRef.current;
+    if (!worker) {
+      if (ocrWorkerPromiseRef.current) {
+        try { worker = await ocrWorkerPromiseRef.current; } catch {}
+      }
+      if (!worker) {
+        const promise = (async function () {
+          const mod = await import('tesseract.js');
+          const createWorker = mod.createWorker || (mod.default && mod.default.createWorker);
+          if (!createWorker) throw new Error('Tesseract not available');
+          const w = await createWorker('eng', 1, {
+            workerPath: '/tesseract/worker.min.js',
+            corePath: '/tesseract/tesseract-core.wasm.js',
+            langPath: '/tesseract/lang-data',
+            gzip: true,
+            logger: function (m) {
+              if (m && typeof m.progress === 'number') {
+                const pct = Math.round(m.progress * 100);
+                setOcrByDoc(function (prev) {
+                  const cur = prev[docId];
+                  if (!cur || cur.status !== 'loading') return prev;
+                  return Object.assign({}, prev, { [docId]: Object.assign({}, cur, { progress: pct }) });
+                });
+              }
+            },
+          });
+          ocrWorkerRef.current = w;
+          return w;
+        })();
+        ocrWorkerPromiseRef.current = promise;
+        try { worker = await promise; } catch {
+          setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'error', progress: 0, ocrText: null, perField: [], error: 'Could not start plain OCR. Please try again.', foundCount: 0, total: 0 } }); });
+          ocrWorkerPromiseRef.current = null;
+          return;
+        }
+        ocrWorkerPromiseRef.current = null;
+      }
+    }
+    let blob = null;
+    try {
+      const resp = await fetch('/api/documents/' + encodeURIComponent(docId) + '/image-proxy');
+      if (!resp.ok) {
+        let friendly = 'Could not run plain OCR on this file. Please try again.';
+        try { const jj = await resp.json(); if (jj && jj.error) friendly = jj.error; } catch {}
+        setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'error', progress: 0, ocrText: null, perField: [], error: friendly, foundCount: 0, total: 0 } }); });
+        return;
+      }
+      blob = await resp.blob();
+    } catch {
+      setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'error', progress: 0, ocrText: null, perField: [], error: 'Could not load image for plain OCR. Please try again.', foundCount: 0, total: 0 } }); });
+      return;
+    }
+    let text = '';
+    let objectUrl = '';
+    try {
+      objectUrl = URL.createObjectURL(blob);
+      const result = await worker.recognize(objectUrl);
+      text = result && result.data && result.data.text ? String(result.data.text) : '';
+    } catch {
+      setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'error', progress: 0, ocrText: null, perField: [], error: 'Could not run plain OCR on this file. Please try again.', foundCount: 0, total: 0 } }); });
+      if (objectUrl) try { URL.revokeObjectURL(objectUrl); } catch {}
+      return;
+    }
+    if (objectUrl) try { URL.revokeObjectURL(objectUrl); } catch {}
+    let ocrFoundInTextFn = null;
+    try {
+      const mod2 = await import('@/lib/ocr-compare.js');
+      ocrFoundInTextFn = mod2.ocrFoundInText || (mod2.default && mod2.default.ocrFoundInText) || null;
+    } catch {}
+    const docFields = data && data.fields && data.fields[docId] ? data.fields[docId] : [];
+    const perField = [];
+    let foundCount = 0;
+    for (let i = 0; i < docFields.length; i++) {
+      const f = docFields[i];
+      const fieldKey = f.field_key;
+      const expectedRaw = f.value_text != null ? f.value_text : (f.value != null ? f.value : '');
+      const unreadable = f.unreadable === true;
+      if (unreadable) { perField.push({ fieldKey: fieldKey, suriValue: '—', suriUnreadable: true, found: false }); continue; }
+      const fieldDef = ocrGetFieldDef(docType, fieldKey);
+      let found = false;
+      try {
+        if (ocrFoundInTextFn) found = !!ocrFoundInTextFn({ fieldDef: fieldDef, ocrText: text, expected: expectedRaw });
+        else { const hay = String(text).toLowerCase(); const needle = String(expectedRaw).toLowerCase().trim(); found = !!needle && hay.indexOf(needle) >= 0; }
+      } catch { found = false; }
+      if (found) foundCount += 1;
+      const displayVal = expectedRaw != null && String(expectedRaw).trim() !== '' ? String(expectedRaw) : '(empty)';
+      perField.push({ fieldKey: fieldKey, suriValue: displayVal, suriUnreadable: false, found: found });
+    }
+    setOcrByDoc(function (prev) { return Object.assign({}, prev, { [docId]: { status: 'done', progress: 100, ocrText: text, perField: perField, error: null, foundCount: foundCount, total: docFields.length } }); });
+  }
+  function handleOcrHide(docId) {
+    setOcrByDoc(function (prev) { const n = Object.assign({}, prev); delete n[docId]; return n; });
+  }
+  async function handleOcrCopy(text) {
+    try { if (navigator && navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text || ''); } catch {}
   }
   if (!data) return (<main className="set-page"><h1>Your checklist</h1><p>{msg}</p></main>);
   const fieldsMap = data.fields || {};
@@ -359,6 +491,34 @@ export default function SetClient() {
                   <div>
                     <button type="button" onClick={() => reviewAction(row.document_id, 'approve')} disabled={reviewBusy === row.document_id + 'approve'} style={SMALLBTN}>Approve</button>
                     <button type="button" onClick={() => reviewAction(row.document_id, 'reject')} disabled={reviewBusy === row.document_id + 'reject'} style={SMALLBTN}>Reject</button>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    <button type="button" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} disabled={ocrByDoc[row.document_id]?.status === 'loading'} aria-label="Compare with plain OCR (no AI) — runs in browser" aria-busy={ocrByDoc[row.document_id]?.status === 'loading'} style={Object.assign({}, SMALLBTN, { border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', cursor: 'pointer', borderStyle: 'dashed', width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginRight: 0 })}>Compare with plain OCR</button>
+                    {ocrByDoc[row.document_id]?.status === 'loading' && (<p style={{ margin: '8px 0 0', fontSize: 14 }} aria-live="polite">Reading with plain OCR… {ocrByDoc[row.document_id].progress}%</p>)}
+                    {ocrByDoc[row.document_id]?.status === 'error' && (<p style={{ margin: '8px 0 0', fontSize: 14, color: '#a00', overflowWrap: 'break-word' }}>{ocrByDoc[row.document_id].error}</p>)}
+                    {ocrByDoc[row.document_id]?.status === 'done' && (
+                      <div style={{ marginTop: 8, padding: 10, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
+                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 600 }}>Plain OCR (no AI) vs Suri (Muse Spark)</p>
+                        <p style={{ margin: '0 0 6px', fontSize: 12, color: '#666' }}>Plain OCR runs in your browser — no server cost.</p>
+                        <p style={{ margin: '0 0 8px', fontSize: 14 }}>Plain OCR found {ocrByDoc[row.document_id].foundCount} of {ocrByDoc[row.document_id].total} fields.</p>
+                        <div style={{ display: 'grid', gap: 6 }}>
+                          {ocrByDoc[row.document_id].perField.map(function (pf) {
+                            return (
+                              <div key={pf.fieldKey} style={{ padding: '6px 8px', border: '1px solid var(--foreground)', borderRadius: 6, background: 'var(--background)' }}>
+                                <div style={{ fontSize: 14, overflowWrap: 'break-word' }}><b>{pf.fieldKey}:</b> Suri (Muse Spark): {pf.suriValue}</div>
+                                <div style={{ fontSize: 14 }}>Plain OCR (no AI): {pf.suriUnreadable ? (<span style={{ color: '#888' }}>—</span>) : (pf.found ? (<span style={{ color: '#0a0' }}>✓ found</span>) : (<span style={{ color: '#888' }}>✗ not found</span>))}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 13, fontFamily: 'monospace', border: '1px solid var(--foreground)', borderRadius: 6, padding: 8, background: 'var(--background)', color: 'var(--foreground)', overflowWrap: 'break-word', wordBreak: 'break-word', boxSizing: 'border-box' }}>{ocrByDoc[row.document_id].ocrText || '(no text)'}</div>
+                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          <button type="button" onClick={() => handleOcrCopy(ocrByDoc[row.document_id].ocrText)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Copy OCR text</button>
+                          <button type="button" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Run again</button>
+                          <button type="button" onClick={() => handleOcrHide(row.document_id)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Hide</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {docReviews.length > 0 && (
                     <div style={{ marginTop: 8 }}>
