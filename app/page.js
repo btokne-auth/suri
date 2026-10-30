@@ -40,8 +40,16 @@ export default function Home() {
               → start a check
             </a>
             <a href="/setup">set up your own</a>
+            <a href="/start#your-checks" className="landing-nav-extra">
+              your checks
+            </a>
           </nav>
           <div className="landing-sidebar-divider" />
+          <nav className="mono landing-nav landing-nav-secondary" aria-label="Secondary">
+            <a href="#how-it-works">how it works</a>
+            <a href="#accuracy">accuracy</a>
+            <a href="#privacy">privacy</a>
+          </nav>
           <div className="landing-sidebar-foot">
             <span>Built for the Meta Global AI Developer Hackathon.</span>
           </div>
@@ -63,10 +71,21 @@ export default function Home() {
                   other papers and the office&apos;s rules, and tells you what to fix.
                 </p>
                 <p className="landing-copy-muted">It never guesses. When it isn&apos;t sure, it asks. A person always decides.</p>
+                <div className="mono landing-hero-links">
+                  <a href="#how-it-works" className="landing-hero-link">
+                    how it works ↓
+                  </a>
+                  <a href="https://github.com/btokne-auth/suri/blob/main/docs/SCORECARD.md" target="_blank" rel="noopener noreferrer" className="landing-hero-link">
+                    scorecard ↗
+                  </a>
+                  <a href="https://github.com/btokne-auth/suri" target="_blank" rel="noopener noreferrer" className="landing-hero-link">
+                    github ↗
+                  </a>
+                </div>
               </div>
             </div>
 
-            <div className="landing-stats">
+            <div id="accuracy" className="landing-stats">
               <div className="landing-stat">
                 <span className="landing-stat-value">95.5%</span>
                 <span className="landing-stat-label">FIELDS READ RIGHT</span>
@@ -100,6 +119,37 @@ export default function Home() {
                   <span className="landing-process-cta">start →</span>
                 </a>
               ))}
+            </section>
+
+            <section id="how-it-works" className="landing-section">
+              <div className="landing-section-head">
+                <span className="landing-section-title">02 — how it works</span>
+              </div>
+              <div className="landing-how-list">
+                <div className="landing-how-row">
+                  <span className="landing-how-num">01</span>
+                  <span className="landing-how-text">Take a photo of each document.</span>
+                </div>
+                <div className="landing-how-row">
+                  <span className="landing-how-num">02</span>
+                  <span className="landing-how-text">Suri reads it and checks it against your other papers and the office&apos;s rules.</span>
+                </div>
+                <div className="landing-how-row">
+                  <span className="landing-how-num">03</span>
+                  <span className="landing-how-text">It tells you what&apos;s ready and what to fix. When it isn&apos;t sure, it asks. A person always decides.</span>
+                </div>
+              </div>
+            </section>
+
+            <section id="privacy" className="landing-section">
+              <div className="landing-section-head">
+                <span className="landing-section-title">03 — privacy</span>
+              </div>
+              <div className="landing-privacy-list">
+                <p className="landing-privacy-line">Use sample documents only. Never upload a real ID.</p>
+                <p className="landing-privacy-line">Uploads and results are deleted automatically after 7 days.</p>
+                <p className="landing-privacy-line">No account needed. You only see your own checks.</p>
+              </div>
             </section>
 
             <p className="landing-footer">SAMPLE DOCUMENTS ONLY · UPLOADS DELETED AFTER 7 DAYS</p>
