@@ -3,12 +3,13 @@
 // inserts documents row as uploaded, returns fast; reading runs in after().
 // Vercel request bodies cap at ~4.5 MB, so the server rejects over that.
 // Browser shrinks photos first (see test page); PDFs are not resized.
+import 'server-only';
 import { NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { createHash, randomUUID } from 'node:crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { checkUploadLimit, checkGlobalReadLimit } from '@/lib/rate-limit';
+import { checkUploadLimit, checkGlobalReadLimit, getClientIp, checkUploadIpLimit, checkRetryPerSlot, secondsToNextHour } from '@/lib/rate-limit';
 import { runReading } from '@/lib/read-background';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -64,10 +65,27 @@ export async function POST(request) {
   const sniffed = sniffFileType(bytes.subarray(0, 8));
   if (!sniffed) return NextResponse.json({ error: 'Only JPG, PNG or PDF files are allowed.' }, { status: 415 });
   try {
+    const ip = getClientIp(request);
+    const ipLim = await checkUploadIpLimit(admin, ip);
+    if (!ipLim.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json({ error: 'Too many uploads from your network. Please wait a bit and try again.' }, { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } });
+    }
+    const slotLim = await checkRetryPerSlot(admin, submissionId, docType);
+    if (!slotLim.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json({ error: 'Too many uploads for this document. Please wait before trying again.' }, { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } });
+    }
     const up = await checkUploadLimit(admin, userId);
-    if (!up.allowed) return NextResponse.json({ error: 'Too many uploads. Please wait a bit and try again.' }, { status: 429 });
+    if (!up.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json({ error: 'Too many uploads. Please wait a bit and try again.' }, { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } });
+    }
     const rd = await checkGlobalReadLimit(admin);
-    if (!rd.allowed) return NextResponse.json({ error: 'Suri is busy right now. Please try again later.' }, { status: 429 });
+    if (!rd.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json({ error: 'Suri is busy right now. Please try again later.' }, { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } });
+    }
   } catch { return NextResponse.json({ error: 'Busy. Please try again.' }, { status: 500 }); }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const documentId = randomUUID();

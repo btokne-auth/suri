@@ -56,6 +56,20 @@ export async function PATCH(request, ctx) {
   const v = validateAnswer(rawAnswer);
   if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
   const trimmed = v.value;
+  // Act 2: per-visitor limit 20/hour for answers (dynamic import to keep top-level clean for tests)
+  try {
+    const { checkClarifyAnswerLimit, secondsToNextHour } = await import('@/lib/rate-limit');
+    const rl = await checkClarifyAnswerLimit(admin, userId);
+    if (!rl.allowed) {
+      const retry = secondsToNextHour();
+      return NextResponse.json(
+        { error: 'Too many answers. Please wait a bit and try again.' },
+        { status: 429, headers: { 'Retry-After': String(retry), 'Cache-Control': 'no-store' } }
+      );
+    }
+  } catch {
+    // if limit check fails, continue
+  }
   const { error: upErr } = await admin.from('clarifications').update({ answer: trimmed }).eq('id', cid);
   if (upErr) return NextResponse.json({ error: 'Could not save answer. Please try again.' }, { status: 500 });
   // Work log: field label only, never the answer text
