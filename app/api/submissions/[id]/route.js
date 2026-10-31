@@ -33,6 +33,7 @@ export async function GET(request, ctx) {
   const reqDoc = req ? req.document : null;
   const reqDef = reqDoc ? resolveDocumentType(bundle, reqDoc) : null;
   const reqLabel = reqDef ? reqDef.label : reqDoc;
+  const notChecked = Array.isArray(proc.not_checked) ? proc.not_checked.slice(0, 5) : [];
   const { data: docs } = await admin.from('documents').select('id,doc_type,status,created_at,looks_like,quality_problems').eq('submission_id', sid).order('created_at', { ascending: false });
   const list = docs || [];
   // Newest upload per type wins ("replaced"): older uploads stay in the
@@ -295,5 +296,5 @@ export async function GET(request, ctx) {
     }
     rows.push({ doc_type: t, label: def ? def.label : t, locked, status, action, reason, document_id: d ? d.id : null, clarifications: docClarifications });
   }
-  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: req ? (req.message || null) : null, requirement_document: reqDoc, override_note: overrideNote }, rows, checks, fields: fieldsByDoc, review_actions: reviews, work_log: workLog, clarifications });
+  return NextResponse.json({ submission: sub, process: { id: proc.id, label: proc.label, requirement_message: req ? (req.message || null) : null, requirement_document: reqDoc, override_note: overrideNote, not_checked: notChecked }, rows, checks, fields: fieldsByDoc, review_actions: reviews, work_log: workLog, clarifications });
 }

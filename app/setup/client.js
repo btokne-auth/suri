@@ -71,7 +71,8 @@ function localView(d) {
     const r = d.requirement;
     requirement = 'First check ' + String(r.field || 'value').replace(/_/g, ' ') + ' on ' + docName(r.document) + ' (' + r.op + ' "' + r.value + '"): ' + r.message;
   }
-  return { title: d.label || 'New process', documents: docs, checks, requirement };
+  const not_checked = Array.isArray(d.not_checked) ? d.not_checked.slice(0, 5) : [];
+  return { title: d.label || 'New process', documents: docs, checks, requirement, not_checked };
 }
 function removeField(draft, docIdx, key) {
   const d = clone(draft);
@@ -90,6 +91,7 @@ function removeCheck(draft, idx) {
 export default function SetupClient() {
   const [description, setDescription] = useState('');
   const [draft, setDraft] = useState(null);
+  const [needsMoreInfo, setNeedsMoreInfo] = useState('');
   const [attempts, setAttempts] = useState([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -106,8 +108,9 @@ export default function SetupClient() {
       const r = await fetch('/api/setup/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description }) });
       const j = await r.json();
       if (Array.isArray(j.attempts)) setAttempts(j.attempts);
-      if (!r.ok) { setMsg(j.error || 'Could not build. Please try again.'); setBusy(false); return; }
-      setDraft(j.draft); setMsg('');
+      if (j.needs_more_info) { setNeedsMoreInfo(String(j.needs_more_info)); setDraft(null); setMsg(''); setBusy(false); return; }
+      if (!r.ok) { setNeedsMoreInfo(''); setMsg(j.error || 'Could not build. Please try again.'); setBusy(false); return; }
+      setNeedsMoreInfo(''); setDraft(j.draft); setMsg('');
     } catch { setMsg('Could not build. Please try again.'); }
     setBusy(false);
   }
@@ -131,10 +134,17 @@ export default function SetupClient() {
       {attempts.length > 0 && (
         <div style={CARD}>
           <strong>Suri&apos;s work log</strong>
-          <ul>{attempts.map((a, i) => (<li key={i}>Try {a.n}: {a.result === 'ok' ? 'checklist ready' : 'did not pass validation'}</li>))}</ul>
+          <ul>{attempts.map((a, i) => (<li key={i}>Try {a.n}: {a.result === 'ok' ? 'checklist ready' : a.result === 'needs_more_info' ? 'asked for more detail' : 'did not pass validation'}</li>))}</ul>
         </div>
       )}
-      {draft && (
+      {needsMoreInfo && (
+        <div style={CARD}>
+          <p><strong>Suri needs more detail</strong></p>
+          <p>{needsMoreInfo}</p>
+          <p><small>Try: which documents, which fields, what to check.</small></p>
+        </div>
+      )}
+      {draft && !needsMoreInfo && (
         <div>
           <h2>Your checklist</h2>
           <label>Check name<input value={draft.label || ''} onChange={(e) => setLabel(e.target.value)} style={INP} /></label>
@@ -169,6 +179,12 @@ export default function SetupClient() {
             <div style={CARD}>
               <p><strong>First gate:</strong> {String(draft.requirement.field).replace(/_/g, ' ')} on {draft.requirement.document} {draft.requirement.op} &quot;{draft.requirement.value}&quot;.</p>
               <label>Gate message<input value={draft.requirement.message || ''} onChange={(e) => setReqMessage(e.target.value)} style={INP} /></label>
+            </div>
+          )}
+          {(draft.not_checked || []).length > 0 && (
+            <div style={Object.assign({}, CARD, { borderColor: '#a60' })}>
+              <p><strong>Suri can&apos;t check these yet. A person will need to:</strong></p>
+              <ul>{(draft.not_checked || []).map((t, i) => (<li key={i}>{t}</li>))}</ul>
             </div>
           )}
           <button type="button" onClick={confirm} disabled={busy} style={BTN}>Confirm and save</button>

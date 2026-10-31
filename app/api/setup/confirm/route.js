@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-const { validateDraft, checkDraftCompatibility } = require('../../../../lib/processes/draft-schema.js');
+const { validateDraft, checkDraftCompatibility, honestyCheck } = require('../../../../lib/processes/draft-schema.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
 const CODE_PATTERN = '^[A-Za-z0-9-]+$';
 function codesOnly(issues) {
@@ -38,6 +38,8 @@ export async function POST(request) {
   const draft = shaped.draft;
   const compat = checkDraftCompatibility(draft, getDocumentType);
   if (!compat.ok) return NextResponse.json({ error: 'This draft needs fixes before it can be saved.', codes: codesOnly(compat.issues) }, { status: 422 });
+  const honesty = honestyCheck(draft);
+  if (honesty) return NextResponse.json({ error: honesty.needs_more_info, needs_more_info: honesty.needs_more_info }, { status: 400 });
   // Reorder so the requirement document is first (gate unlocks the rest).
   const ordered = draft.documents.slice();
   if (draft.requirement) {
@@ -60,8 +62,9 @@ export async function POST(request) {
     docDefs[e.id] = { id: e.id, label: e.label, fields };
   }
   const needsProfile = (draft.checks || []).some((c) => String((c && c.compare_to) || '').indexOf('profile.') === 0);
+  const notChecked = Array.isArray(draft.not_checked) ? draft.not_checked.map((s) => String(s).trim()).filter(Boolean).map((s) => s.slice(0, 160)).slice(0, 5) : [];
   const processKey = 'saved_' + randomBytes(4).toString('hex');
-  const definition = { id: processKey, label: draft.label, documents: documentIds, docDefs, checks: draft.checks || [], requirement: draft.requirement || null, needs_profile: needsProfile };
+  const definition = { id: processKey, label: draft.label, documents: documentIds, docDefs, checks: draft.checks || [], requirement: draft.requirement || null, needs_profile: needsProfile, not_checked: notChecked };
   const admin = createAdminClient();
   const ins = await admin.from('saved_processes').insert({ user_id: userId, process_key: processKey, label: draft.label, definition, draft_attempts: normAttempts(body?.attempts) });
   if (ins.error) return NextResponse.json({ error: 'Could not save. Please try again.' }, { status: 500 });
