@@ -31,3 +31,20 @@ describe('draft compatibility', () => {
   it('type mismatch fails', () => { const d = barangayDraft(); d.checks[1].rule = 'within_months'; d.checks[1].months = 3; delete d.checks[1].value; const r = checkDraftCompatibility(d, getDocumentType); assert.equal(r.ok, false); });
   it('sum_equals rejected in drafts', () => { const d = barangayDraft(); d.checks.push({ document: 'proof_of_billing', field: 'billing_address', compare_to: 'self', rule: 'sum_equals', message: 'Sums must match here.' }); assert.equal(checkDraftCompatibility(d, getDocumentType).ok, false); });
 });
+describe('draft schema age_limit', () => {
+  function baseAgeDraft() {
+    return { label: 'Age check process', documents: [{ reuse: 'valid_id' }], checks: [{ document: 'valid_id', field: 'date_of_birth', compare_to: 'self', rule: 'age_limit', min_age: 18, message: 'Must be at least 18.' }] };
+  }
+  it('accept valid age_limit min only', () => { const d = baseAgeDraft(); assert.equal(validateDraft(d).ok, true); assert.equal(checkDraftCompatibility(d, getDocumentType).ok, true); });
+  it('accept valid age_limit max only', () => { const d = baseAgeDraft(); delete d.checks[0].min_age; d.checks[0].max_age = 65; assert.equal(validateDraft(d).ok, true); assert.equal(checkDraftCompatibility(d, getDocumentType).ok, true); });
+  it('accept valid age_limit between', () => { const d = baseAgeDraft(); d.checks[0].max_age = 65; assert.equal(validateDraft(d).ok, true); assert.equal(checkDraftCompatibility(d, getDocumentType).ok, true); });
+  it('reject age_limit with no bounds', () => { const d = baseAgeDraft(); delete d.checks[0].min_age; assert.equal(validateDraft(d).ok, false); });
+  it('reject age_limit with min_age 200', () => { const d = baseAgeDraft(); d.checks[0].min_age = 200; assert.equal(validateDraft(d).ok, false); });
+  it('reject age_limit with max_age 200', () => { const d = baseAgeDraft(); d.checks[0].max_age = 200; d.checks[0].min_age = 18; assert.equal(validateDraft(d).ok, false); });
+  it('reject max < min', () => { const d = baseAgeDraft(); d.checks[0].min_age = 65; d.checks[0].max_age = 18; assert.equal(validateDraft(d).ok, false); });
+  it('reject value on age_limit', () => { const d = baseAgeDraft(); d.checks[0].value = 'something'; assert.equal(validateDraft(d).ok, false); });
+  it('reject months on age_limit', () => { const d = baseAgeDraft(); d.checks[0].months = 3; assert.equal(validateDraft(d).ok, false); });
+  it('reject age_limit on text field', () => { const d = baseAgeDraft(); d.checks[0].field = 'address_line'; assert.equal(checkDraftCompatibility(d, getDocumentType).ok, false); });
+  it('reject age_limit with non-self compare_to', () => { const d = baseAgeDraft(); d.checks[0].compare_to = 'profile.date_of_birth'; assert.equal(checkDraftCompatibility(d, getDocumentType).ok, false); });
+});
+

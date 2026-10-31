@@ -64,6 +64,14 @@ function localView(d) {
     if (c.rule === 'contains') return srcField + ' must contain "' + c.value + '".';
     if (c.rule === 'not_future') return srcField + ' must not be in the future.';
     if (c.rule === 'within_months') return srcField + ' must be within the last ' + c.months + ' month' + (c.months === 1 ? '' : 's') + '.';
+    if (c.rule === 'age_limit') {
+      const hasMin = Number.isInteger(c.min_age);
+      const hasMax = Number.isInteger(c.max_age);
+      if (hasMin && hasMax) return srcField + ' on ' + srcDoc + ' must be between ' + c.min_age + ' and ' + c.max_age + ' years old.';
+      if (hasMin) return srcField + ' on ' + srcDoc + ' must be at least ' + c.min_age + ' years old.';
+      if (hasMax) return srcField + ' on ' + srcDoc + ' must be at most ' + c.max_age + ' years old.';
+      return srcField + ' on ' + srcDoc + ' is checked.';
+    }
     return srcField + ' on ' + srcDoc + ' is checked.';
   });
   let requirement = null;
