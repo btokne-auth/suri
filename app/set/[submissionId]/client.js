@@ -9,6 +9,20 @@ const SMALLBTN = { padding: '10px 12px', minHeight: 44, fontSize: 16, marginRigh
 const RESCOLOR = { match: '#0a0', check: '#a60', mismatch: '#a00', invalid: '#a00' };
 const CLARINP = { display: 'block', width: '100%', maxWidth: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', boxSizing: 'border-box' };
 const CLARBTN = { padding: '12px 16px', minHeight: 44, fontSize: 16, marginTop: 8, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', cursor: 'pointer', maxWidth: '100%' };
+// Checklist 10b helpers — applicant only, no API change
+function fieldLabelFallback(key) {
+  const s = String(key || 'value').replace(/_/g, ' ').trim() || 'value';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+function humanFieldLabel(key) {
+  return fieldLabelFallback(key);
+}
+function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+  return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
 async function shrinkForUpload(f) {
   if (!f || f.type === 'application/pdf' || !f.type.startsWith('image/')) return f;
   try {
@@ -43,9 +57,48 @@ export default function SetClient() {
   const [clarBusy, setClarBusy] = useState({});
   const [clarSuccess, setClarSuccess] = useState({});
   const [ocrByDoc, setOcrByDoc] = useState({});
+  const [expandedChecks, setExpandedChecks] = useState({});
+  const [replaceOpen, setReplaceOpen] = useState({});
+  const [showAllLog, setShowAllLog] = useState(false);
+  const initialLogSeenRef = useRef(null);
+  const [selectedPreviews, setSelectedPreviews] = useState({});
+  const [uploadErrors, setUploadErrors] = useState({});
+  const previewsRef = useRef({});
   const ocrWorkerRef = useRef(null);
   const ocrWorkerPromiseRef = useRef(null);
   const files = useRef({});
+  useEffect(() => { previewsRef.current = selectedPreviews; }, [selectedPreviews]);
+  useEffect(() => {
+    return () => {
+      const cur = previewsRef.current || {};
+      for (const k in cur) {
+        const v = cur[k];
+        if (v && v.url) try { URL.revokeObjectURL(v.url); } catch {}
+      }
+    };
+  }, []);
+  useEffect(() => {
+    if (data && Array.isArray(data.work_log) && initialLogSeenRef.current === null) {
+      initialLogSeenRef.current = new Set((data.work_log || []).map(function (e) { return e.created_at; }));
+    }
+  }, [data]);
+  function handleFilePick(docType) {
+    return function (e) {
+      const f = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+      setUploadErrors(function (p) { const n = Object.assign({}, p); delete n[docType]; return n; });
+      const prev = selectedPreviews[docType];
+      if (prev && prev.url) try { URL.revokeObjectURL(prev.url); } catch {}
+      if (!f) {
+        setSelectedPreviews(function (p) { const n = Object.assign({}, p); delete n[docType]; return n; });
+        return;
+      }
+      const isImage = f.type && f.type.startsWith('image/');
+      let url = '';
+      try { if (isImage) url = URL.createObjectURL(f); } catch {}
+      const sizeLabel = formatFileSize(f.size);
+      setSelectedPreviews(function (p) { return Object.assign({}, p, { [docType]: { name: f.name || 'photo', sizeLabel: sizeLabel, url: url, isImage: !!isImage } }); });
+    };
+  }
   async function load(id) {
     try {
       const r = await fetch('/api/submissions/' + encodeURIComponent(id));
@@ -98,8 +151,8 @@ export default function SetClient() {
   }, []);
   async function upload(t) {
     const picked = files.current[t]?.files?.[0];
-    if (!picked) { setMsg('Choose a file for ' + t + ' first.'); return; }
-    setBusy(t); setMsg('Uploading ' + t + '...');
+    if (!picked) { setUploadErrors(function (p) { return Object.assign({}, p, { [t]: 'Choose a photo first.' }); }); return; }
+    setBusy(t); setUploadErrors(function (p) { const n = Object.assign({}, p); delete n[t]; return n; });
     try {
       const f = await shrinkForUpload(picked);
       const fd = new FormData();
@@ -108,9 +161,18 @@ export default function SetClient() {
       fd.append('file', f);
       const r = await fetch('/api/upload', { method: 'POST', body: fd });
       const j = await r.json();
-      setMsg(r.ok ? 'Uploaded. Reading takes ~30s.' : 'Upload failed: ' + (j.error || r.status));
-      if (r.ok) load(sid);
-    } catch { setMsg('Upload failed. Try again.'); }
+      if (r.ok) {
+        const cur = previewsRef.current[t] || selectedPreviews[t];
+        if (cur && cur.url) try { URL.revokeObjectURL(cur.url); } catch {}
+        setSelectedPreviews(function (p) { const n = Object.assign({}, p); delete n[t]; return n; });
+        if (files.current[t]) try { files.current[t].value = ''; } catch {}
+        load(sid);
+      } else {
+        setUploadErrors(function (p) { return Object.assign({}, p, { [t]: 'Upload failed: ' + (j.error || r.status) }); });
+      }
+    } catch {
+      setUploadErrors(function (p) { return Object.assign({}, p, { [t]: 'Upload failed. Try again.' }); });
+    }
     setBusy(null);
   }
   async function loadImage(docId) {
@@ -299,10 +361,9 @@ export default function SetClient() {
   for (const row of (data.rows || [])) {
     if (row && row.document_id && !docTypeById[row.document_id]) docTypeById[row.document_id] = row.doc_type;
   }
-  // "Uploaded. Reading..." is a guess at upload time: hide it as soon as
-  // no row is still reading.
   const stillReading = (data.rows || []).some((row) => row && (row.status === 'uploaded' || row.status === 'reading'));
-  const showMsg = msg && msg !== 'Loading...' && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
+  const isUploadMsg = msg && (msg.indexOf('Uploaded. Reading') === 0 || msg.indexOf('Uploading') === 0 || msg.indexOf('Upload ') === 0 || msg.indexOf('Choose a file') === 0);
+  const showMsg = msg && msg !== 'Loading...' && !isUploadMsg && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
   // Each check says what it compared against: "same as your profile" or
   // "same as {label}". Same-document checks (sum_equals plus the fixed
   // rule/value rules contains, equals, within_months, not_future) compare
@@ -339,23 +400,232 @@ export default function SetClient() {
     if (isSelfCheck(c)) {
       return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b>. {cleanReason(c.reason)}</span>);
     }
-    return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b> — same as {comparedLabelText(c)}. {cleanReason(c.reason)}</span>);
+    const cmp = comparedLabelText(c);
+    const suffix = c.result === 'match' ? ' — same as ' + cmp : ' — compared with ' + cmp;
+    return (<span><b style={{ color: RESCOLOR[c.result] || '#000' }}>{c.result}</b>{suffix}. {cleanReason(c.reason)}</span>);
   }
   function checksFor(docId) {
     if (!docId) return [];
     return checksAll.filter((c) => c.document_id === docId);
   }
+  function renderApplicantClarifications(row) {
+    if (!row) return null;
+    const action = row.action;
+    const clarList = Array.isArray(row.clarifications) ? row.clarifications : [];
+    if (action === 'please confirm') {
+      const unanswered = clarList.filter(function (cl) { return cl && cl.answer == null && cl.question; });
+      if (unanswered.length > 0) {
+        return (
+          <div style={{ marginTop: 10 }}>
+            {unanswered.map(function (cl) {
+              return (
+                <div key={cl.id} className="checklist-ask">
+                  <span className="checklist-ask-label mono">SURI ASKS</span>
+                  <p className="checklist-ask-q">{cl.question}</p>
+                  <label style={{ display: 'block', maxWidth: '100%' }}>
+                    <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Your answer (max 200):</span>
+                    <input value={clarAnswers[cl.id] || ''} onChange={function (e) { setClarAnswers(function (p) { return { ...p, [cl.id]: e.target.value }; }); }} maxLength={200} placeholder="Short answer, e.g. Ma. is short for Maria on my ID" className="checklist-ask-input" />
+                  </label>
+                  {clarErrors[cl.id] && <p style={{ color: 'var(--mismatch)', fontSize: 14, marginTop: 6, overflowWrap: 'break-word' }}>{clarErrors[cl.id]}</p>}
+                  {clarSuccess[cl.id] && <p className="checklist-ask-q" style={{ color: 'var(--check)', fontSize: 13 }}>Answered. A person will decide.</p>}
+                  <div className="checklist-ask-actions"><button type="button" onClick={function () { sendClarAnswer(cl.id); }} disabled={!!clarBusy[cl.id]} className="checklist-btn-primary">{clarBusy[cl.id] ? 'Sending...' : 'Send answer'}</button></div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+      const hasCheck = checksFor(row.document_id).some(function (c) { return c && c.result === 'check'; });
+      if (hasCheck || clarList.length === 0) {
+        return <p className="checklist-ask-q" style={{ color: 'var(--text-2)', fontSize: 13, marginTop: 8 }}>Suri is preparing a question…</p>;
+      }
+      return null;
+    }
+    if (action === 'answered, a person will decide') {
+      const answered = clarList.filter(function (cl) { return cl && cl.answer != null; });
+      if (answered.length === 0) return null;
+      return (
+        <div style={{ marginTop: 10 }}>
+          {answered.map(function (cl) {
+            return (
+              <div key={cl.id} className="checklist-ask">
+                <span className="checklist-ask-label mono">SURI ASKED</span>
+                <p className="checklist-ask-q">{cl.question}</p>
+                <p className="checklist-ask-q" style={{ color: 'var(--text-2)' }}>Your answer: {cl.answer}</p>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text-3)' }}>Answered. A person will decide.</p>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  }
+  // 10b applicant tag mapping — explicit, NEVER default READY
+  function getTag(row, docChecks) {
+    const checks = Array.isArray(docChecks) ? docChecks : (row && row.document_id ? checksFor(row.document_id) : []);
+    if (!row || !row.document_id) return { text: '+ UPLOAD', cls: 'checklist-tag-upload', markerBg: 'var(--text-2)' };
+    if (row.status === 'uploaded' || row.status === 'reading') return { text: 'READING…', cls: 'checklist-tag-reading', markerBg: 'var(--accent)' };
+    if (row.action === 'ready') return { text: '✓ READY', cls: 'checklist-tag-ready', markerBg: 'var(--match)' };
+    if (row.action === 'please confirm' || row.action === 'answered, a person will decide') return { text: '▪ CONFIRM', cls: 'checklist-tag-confirm', markerBg: 'var(--check)' };
+    if (row.status === 'retake_needed') return { text: '↻ RETAKE', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
+    if (row.status === 'wrong_document') return { text: '✕ WRONG DOCUMENT', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
+    if (row.status === 'error') return { text: '↻ TRY AGAIN', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
+    if (row.status === 'approved') return { text: '✓ APPROVED', cls: 'checklist-tag-ready', markerBg: 'var(--match)' };
+    if (row.status === 'rejected') return { text: '✕ REJECTED', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
+    const hasMismatch = checks.some(function (c) { return c && (c.result === 'mismatch' || c.result === 'invalid'); });
+    if (hasMismatch) return { text: '✕ MISMATCH', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
+    return { text: '▪ CONFIRM', cls: 'checklist-tag-confirm', markerBg: 'var(--check)' };
+  }
+  function isReadRow(r) {
+    return !!(r && r.document_id && r.status !== 'uploaded' && r.status !== 'reading');
+  }
+  function docLabelForLog(w) {
+    if (!w) return 'your document';
+    const raw = String((w.message || '') + ' ' + (w.step_type || '')).toLowerCase();
+    for (const rr of (data.rows || [])) {
+      if (rr && rr.doc_type && raw.includes(rr.doc_type)) return rr.label || rr.doc_type.replace(/_/g, ' ');
+    }
+    for (const rr of (data.rows || [])) {
+      if (rr && rr.label) {
+        const ll = String(rr.label).toLowerCase();
+        if (ll && raw.includes(ll.toLowerCase().slice(0, 8))) return rr.label;
+      }
+    }
+    if (data && data.process && data.process.label) return data.process.label;
+    return 'your document';
+  }
+  // Bug fix: parse check counts only when the number is directly
+  // followed by its label (match / to confirm / mismatch / to fix).
+  // The old code used (\d+).*?(fix|mismatch|confirm) which counted
+  // the "1" from "1 document(s)" as a fix count. We now require
+  // "<number> <label>" so document counts are never included.
+  function parseCheckCounts(msg) {
+    const s = String(msg || '');
+    let match = null, confirm = null, mismatch = null;
+    const mMatch = s.match(/(\d+)\s*match\b/i);
+    if (mMatch) match = parseInt(mMatch[1], 10);
+    const mConfirm = s.match(/(\d+)\s*to\s*confirm\b/i);
+    if (mConfirm) confirm = parseInt(mConfirm[1], 10);
+    else {
+      const mConfirm2 = s.match(/(\d+)\s*confirm\b/i);
+      if (mConfirm2 && !s.match(/to\s*confirm/i)) confirm = parseInt(mConfirm2[1], 10);
+    }
+    const mMismatch = s.match(/(\d+)\s*mismatch\b/i);
+    if (mMismatch) mismatch = parseInt(mMismatch[1], 10);
+    else {
+      const mFix = s.match(/(\d+)\s*to\s*fix\b/i);
+      if (mFix) mismatch = parseInt(mFix[1], 10);
+      else {
+        const mFix2 = s.match(/(\d+)\s*fix\b/i);
+        if (mFix2) mismatch = parseInt(mFix2[1], 10);
+      }
+    }
+    if (match === null && confirm === null && mismatch === null) return null;
+    return { match: match ?? 0, confirm: confirm ?? 0, mismatch: mismatch ?? 0 };
+  }
+  function workLogSentence(w) {
+    if (!w) return 'Suri updated your checklist.';
+    const t = String(w.step_type || '').toLowerCase();
+    const label = docLabelForLog(w);
+    const m = String(w.message || '');
+    if (t === 'upload' || t.includes('upload')) return 'Received \u00b7 ' + label;
+    if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'Reading \u00b7 ' + label;
+    if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
+      const num = (m.match(/\d+/) || [])[0];
+      return num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label;
+    }
+    if (t === 'check_finished' || t.includes('check')) {
+      const counts = parseCheckCounts(m);
+      if (counts) {
+        let s = 'Checked \u00b7 ' + counts.match + ' match';
+        if (counts.confirm > 0) s += ' \u00b7 ' + counts.confirm + ' to confirm';
+        if (counts.mismatch > 0) s += ' \u00b7 ' + counts.mismatch + ' to fix';
+        return s;
+      }
+      return 'Checked \u00b7 ' + label;
+    }
+    if (t.includes('clarification_asked') || t.includes('asked')) return 'Asked \u00b7 ' + label;
+    if (t.includes('clarification_answered') || t.includes('answered')) return 'Answered \u00b7 ' + label;
+    if (t.includes('review')) return 'Reviewed \u00b7 ' + label;
+    return 'Suri updated your checklist.';
+  }
+  function formatLogTime(iso) {
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      const now = Date.now();
+      const diff = now - d.getTime();
+      if (diff < 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) {
+        const mins = Math.floor(diff / 60000);
+        return mins === 1 ? '1 min ago' : mins + ' min ago';
+      }
+      const isToday = new Date().toDateString() === d.toDateString();
+      const timeStr = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      if (isToday) return timeStr;
+      const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return timeStr + ' \u00b7 ' + dateStr;
+    } catch { return ''; }
+  }
+  function formatLogFullTime(iso) {
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso || '');
+      return d.toLocaleString();
+    } catch { return String(iso || ''); }
+  }
+  function logDotColor(w) {
+    if (!w) return 'var(--text-3)';
+    const t = String(w.step_type || '').toLowerCase();
+    if (t === 'upload' || t.includes('upload')) return 'var(--text-3)';
+    if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'var(--text-3)';
+    if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) return 'var(--accent)';
+    if (t === 'check_finished' || t.includes('check')) {
+      const counts = parseCheckCounts(String(w.message || ''));
+      if (counts) {
+        if (counts.mismatch > 0) return 'var(--mismatch)';
+        if (counts.confirm > 0) return 'var(--check)';
+        return 'var(--match)';
+      }
+      return 'var(--match)';
+    }
+    return 'var(--text-3)';
+  }
+  // applicant progress/analysis
+  const rowsForProgress = Array.isArray(data.rows) ? data.rows : [];
+  const readCount = rowsForProgress.filter(isReadRow).length;
+  const totalCount = rowsForProgress.length;
+  const allRead = totalCount > 0 && rowsForProgress.every(isReadRow);
+  let readyN = 0, confirmN = 0, fixN = 0;
+  for (const r of rowsForProgress) {
+    const tg = getTag(r, r.document_id ? checksFor(r.document_id) : []);
+    if (tg.text === '✓ READY') readyN += 1;
+    else if (tg.text === '▪ CONFIRM') confirmN += 1;
+    else if (['↻ RETAKE', '✕ WRONG DOCUMENT', '↻ TRY AGAIN', '✕ MISMATCH', '✕ REJECTED'].includes(tg.text)) fixN += 1;
+  }
+  const checklistPageClass = 'checklist-page';
   return (
-    <main className="set-page">
-      <h1>Your checklist</h1>
-      <p>{data.process.label}</p>
-      <div style={{ marginBottom: 12 }}>
-        <button type="button" onClick={() => setView('applicant')} disabled={view === 'applicant'} style={SMALLBTN}>Applicant</button>
-        <button type="button" onClick={() => setView('reviewer')} disabled={view === 'reviewer'} style={SMALLBTN}>Reviewer</button>
+    <main className={checklistPageClass}>
+      <header className="checklist-header">
+        <div className="checklist-brand">
+          <svg width="22" height="22" viewBox="0 0 28 28" aria-hidden="true"><path d="M2 8V2h6M20 2h6v6M26 20v6h-6M8 26H2v-6" fill="none" stroke="#8B8D94" strokeWidth="1.8" /><text x="14" y="19.5" textAnchor="middle" fontFamily="Manrope" fontWeight="800" fontSize="16" fill="#EDEDEF">S</text><rect x="4" y="13.2" width="20" height="1.6" fill="#7B8CFF" /></svg>
+          <span className="checklist-title mono">Suri</span>
+        </div>
+        <div role="group" aria-label="View" className="checklist-tabs">
+          <div aria-hidden="true" className={'checklist-tabs-pill ' + (view === 'applicant' ? 'checklist-tabs-pill-applicant' : 'checklist-tabs-pill-reviewer')}></div>
+          <button type="button" onClick={() => setView('applicant')} className={view === 'applicant' ? 'checklist-tab checklist-tab-active' : 'checklist-tab'}>applicant</button>
+          <button type="button" onClick={() => setView('reviewer')} className={view === 'reviewer' ? 'checklist-tab checklist-tab-active' : 'checklist-tab'}>reviewer</button>
+        </div>
+      </header>
+      <div className="checklist-intro">
+        <span className="checklist-intro-label mono">YOUR PAPERS</span>
+        <h1 className="checklist-h1 mono">{data.process.label}</h1>
       </div>
-      {showMsg && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{msg}</b></p>)}
-      {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p style={{ border: '2px solid #000', padding: 12 }}><b>{data.process.requirement_message}</b> A person still decides.</p>)}
-      {data.process.override_note && (<p style={{ border: '1px solid #888', padding: 12 }}><b>Overridden by reviewer:</b> {data.process.override_note} A person decides.</p>)}
+      {showMsg && (<p className="checklist-msg"><b>{msg}</b></p>)}
+      {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p className="checklist-msg"><b>{data.process.requirement_message}</b> A person still decides.</p>)}
+      {data.process.override_note && (<p className="checklist-msg"><b>Overridden by reviewer:</b> {data.process.override_note} A person decides.</p>)}
       {view === 'reviewer' && data.submission.status === 'requirement_not_met' && (
         <div style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
           <h3>Requirement override</h3>
@@ -364,75 +634,109 @@ export default function SetClient() {
           <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override'} style={SMALLBTN}>{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
         </div>
       )}
-      <div className="set-wrap">
-        {view === 'applicant' && (
-        <section className="set-docs">
-          <h2>Documents</h2>
-          {(data.rows || []).map((row) => (
-            <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <h3>{row.label}</h3>
-              <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
-              <p>Action: <b>{row.action}</b>{String(row.reason).trim().toLowerCase() !== String(row.action).trim().toLowerCase() ? ' — ' + row.reason : ''}</p>
-              {row.action === 'please confirm' && (() => {
-                const clarList = row.clarifications || [];
-                const unanswered = clarList.filter(function (cl) { return cl && cl.answer == null && cl.question; });
-                if (unanswered.length > 0) {
-                  return (
-                    <div style={{ marginTop: 10 }}>
-                      {unanswered.map(function (cl) {
+      <div key={view} className="checklist-view">
+        <div className="set-wrap" style={{ marginTop: 24 }}>
+          {view === 'applicant' && (
+          <section className="set-docs" style={{ flex: '2 1 360px' }}>
+            <div className="checklist-progress">
+              <span className="checklist-progress-count mono">{readCount} OF {totalCount} READ</span>
+            </div>
+          <div className="checklist-stats">
+            <div className="checklist-stat"><span className="checklist-stat-num mono">{readyN}</span><span className="checklist-stat-label mono"><span className="checklist-stat-dot" style={{ background: 'var(--match)' }}></span>READY</span></div>
+            <div className="checklist-stat"><span className="checklist-stat-num mono">{confirmN}</span><span className="checklist-stat-label mono"><span className="checklist-stat-dot" style={{ background: 'var(--check)' }}></span>CONFIRM</span></div>
+            <div className="checklist-stat"><span className="checklist-stat-num mono">{fixN}</span><span className="checklist-stat-label mono"><span className="checklist-stat-dot" style={{ background: 'var(--mismatch)' }}></span>TO FIX</span></div>
+          </div>
+          {allRead && (<div className="checklist-analysis mono">ANALYSIS COMPLETE · {readyN} READY · {confirmN} TO CONFIRM{fixN > 0 ? ' · ' + fixN + ' TO FIX' : ''}</div>)}
+          <div className="checklist-manifest" style={{ marginTop: 16 }}>
+          {(data.rows || []).map(function (row, idx) {
+            const docChecks = row.document_id ? checksFor(row.document_id) : [];
+            const tag = getTag(row, docChecks);
+            const isReading = row.status === 'uploaded' || row.status === 'reading';
+            return (
+              <div key={row.doc_type} className="checklist-row">
+                <span className="checklist-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
+                <div className="checklist-row-main">
+                  <span className="checklist-docid mono">DOC-0{idx + 1}</span>
+                  <span className="checklist-docname">{row.label}</span>
+                  <span className="checklist-sentence">{row.reason}</span>
+                  {isReading ? (
+                    <>
+                      <div className="checklist-skeleton" aria-hidden="true">
+                        <pre className="checklist-skeleton-pre mono">{'░░▒▒ ▒▒░░░░ ▒▒▒░ ░░▒▒▒ ░░▒▒\n' + (function () { const def = OCR_BUILTIN_DEFS[row.doc_type]; const keys = def && def.fields ? def.fields.map(function (f) { return f.key; }) : []; const labels = keys.length ? keys.map(humanFieldLabel) : ['Document']; return labels.map(function (lbl) { return lbl.toUpperCase().padEnd(12) + ' ░░▒▒▒ ░░▒▒ ░▒\n'; }).join(''); })() + '▒░░▒▒ ░▒▒▒░░ ▒▒░░▒▒░ ░▒▒ ▒░░\n░▒▒▒░░ ▒▒░ ▒▒▒░░ ░▒▒░ ▒░ ░▒▒'}</pre>
+                        <div className="checklist-beam"></div>
+                      </div>
+                      <span className="checklist-reading-label mono">Reading — usually about 30 seconds.</span>
+                    </>
+                  ) : (
+                    <>
+                      {docChecks.length > 0 && (function () {
+                        const attention = docChecks.filter(function (c) { return c.result !== 'match'; });
+                        const passing = docChecks.filter(function (c) { return c.result === 'match'; });
+                        const expKey = row.doc_type || String(idx);
+                        const isExpanded = !!expandedChecks[expKey];
                         return (
-                          <div key={cl.id} style={{ border: '1px solid var(--foreground)', borderRadius: 8, padding: 12, marginBottom: 10, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
-                            <p style={{ margin: '4px 0' }}><b>Suri asks:</b> {cl.question}</p>
-                            <label style={{ display: 'block', marginTop: 8, maxWidth: '100%' }}>
-                              <span style={{ fontSize: 14 }}>Your answer (max 200):</span>
-                              <input value={clarAnswers[cl.id] || ''} onChange={function (e) { setClarAnswers(function (p) { return { ...p, [cl.id]: e.target.value }; }); }} maxLength={200} placeholder="Short answer, e.g. Ma. is short for Maria on my ID" style={CLARINP} />
-                            </label>
-                            {clarErrors[cl.id] && <p style={{ color: '#a00', fontSize: 14, marginTop: 6, overflowWrap: 'break-word' }}>{clarErrors[cl.id]}</p>}
-                            {clarSuccess[cl.id] && <p style={{ border: '1px solid #a60', background: '#FBF0D9', color: '#3D2F10', padding: 8, marginTop: 8, borderRadius: 6, maxWidth: '100%', overflowWrap: 'break-word' }}>Answered. A person will decide.</p>}
-                            <button type="button" onClick={function () { sendClarAnswer(cl.id); }} disabled={!!clarBusy[cl.id]} style={CLARBTN}>{clarBusy[cl.id] ? 'Sending...' : 'Send answer'}</button>
+                          <div className="checklist-checks">
+                            {attention.filter(function (c) { return (cleanReason(c.reason) || '').trim() !== (row.reason || '').trim(); }).map(function (c, i) {
+                              const tone = c.result === 'match' ? 'checklist-checkline-match' : c.result === 'check' ? 'checklist-checkline-check' : 'checklist-checkline-mismatch';
+                              const fieldLabel = humanFieldLabel(c.field_key);
+                              const baseReason = cleanReason(c.reason) || '';
+                              const sameSuffix = isSelfCheck(c) ? '' : (c.result === 'match' ? ' — same as ' + comparedLabelText(c) : ' — compared with ' + comparedLabelText(c));
+                              return (<div key={'a-' + i} className={'checklist-checkline ' + tone}><b>{c.result}</b> · {fieldLabel}{sameSuffix}. {baseReason}</div>);
+                            })}
+                            {passing.length > 0 && (
+                              <button type="button" className="checklist-checks-toggle" aria-expanded={isExpanded} onClick={function () { setExpandedChecks(function (p) { return Object.assign({}, p, { [expKey]: !p[expKey] }); }); }}>{'✓ ' + passing.length + ' checks passed'}</button>
+                            )}
+                            {isExpanded && passing.filter(function (c) { return (cleanReason(c.reason) || '').trim() !== (row.reason || '').trim(); }).map(function (c, i) {
+                              const tone = 'checklist-checkline-match';
+                              const fieldLabel = humanFieldLabel(c.field_key);
+                              const baseReason = cleanReason(c.reason) || '';
+                              const sameSuffix = isSelfCheck(c) ? '' : ' — same as ' + comparedLabelText(c);
+                              return (<div key={'p-' + i} className={'checklist-checkline ' + tone}><b>{c.result}</b> · {fieldLabel}{sameSuffix}. {baseReason}</div>);
+                            })}
                           </div>
                         );
-                      })}
-                    </div>
-                  );
-                }
-                const hasCheck = checksFor(row.document_id).some(function (c) { return c.result === 'check'; });
-                if (hasCheck || clarList.length === 0) {
-                  return <p style={{ marginTop: 10, padding: 8, border: '1px solid #a60', borderRadius: 8, background: '#FBF0D9', color: '#3D2F10', maxWidth: '100%', overflowWrap: 'break-word' }}>Suri is preparing a question…</p>;
-                }
-                return null;
-              })()}
-              {row.action === 'answered, a person will decide' && (() => {
-                const clarList = row.clarifications || [];
-                const answered = clarList.filter(function (cl) { return cl && cl.answer != null; });
-                if (answered.length === 0) return null;
-                return (
-                  <div style={{ marginTop: 10 }}>
-                    {answered.map(function (cl) {
-                      return (
-                        <div key={cl.id} style={{ border: '1px solid #a60', borderRadius: 8, padding: 12, marginBottom: 10, background: '#FBF0D9', color: '#3D2F10', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
-                          <p style={{ margin: '4px 0' }}><b>Suri asked:</b> {cl.question}</p>
-                          <p style={{ margin: '4px 0' }}><b>Your answer:</b> {cl.answer}</p>
-                          <p style={{ margin: '6px 0 0', fontSize: 14 }}>Answered. A person will decide.</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-              {checksFor(row.document_id).length > 0 && (
-                <ul>
-                  {checksFor(row.document_id).map((c, i) => (<li key={i}>{checkLine(c)}</li>))}
-                </ul>
-              )}
-              {row.locked ? (<p>{row.reason}</p>) : (
-                <div>
-                  <label style={{ display: 'block', marginTop: 8 }}>Photo or PDF: <input ref={(el) => { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" style={{ display: 'block', marginTop: 8, minHeight: 44 }} /></label>
-                  <div style={{ marginTop: 8 }}><button type="button" onClick={() => upload(row.doc_type)} disabled={busy === row.doc_type} style={BTN}>{busy === row.doc_type ? 'Uploading...' : 'Upload ' + row.label}</button></div>
+                      })()}
+                      {!row.locked && (function () {
+                        const tagText = tag.text;
+                        const needsDirect = !row.document_id || tagText === '↻ RETAKE' || tagText === '✕ WRONG DOCUMENT' || tagText === '↻ TRY AGAIN';
+                        const repKey = row.doc_type || String(idx);
+                        const isOpen = !!replaceOpen[repKey];
+                        const preview = selectedPreviews[row.doc_type] || null;
+                        const hasFile = !!preview;
+                        const uploadControls = (
+                          <div className="checklist-upload-wrap">
+                            <div className="checklist-upload">
+                              <label className="checklist-upload-btn" htmlFor={'file-' + row.doc_type}>+ photo</label>
+                              <input id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }} aria-label={'Upload ' + row.label} onChange={handleFilePick(row.doc_type)} />
+                              <button type="button" onClick={function () { upload(row.doc_type); }} disabled={busy === row.doc_type || !hasFile} className={hasFile ? 'checklist-btn-primary' : 'checklist-btn-secondary'} style={{ minHeight: 36, fontSize: 12, opacity: (!hasFile && busy !== row.doc_type) ? 0.45 : 1 }} aria-disabled={busy === row.doc_type || !hasFile}>{busy === row.doc_type ? 'Uploading…' : 'Upload'}</button>
+                            </div>
+                            {preview && (
+                              <div className="checklist-file-preview">
+                                {preview.url && preview.isImage && (<img src={preview.url} alt={'Selected photo: ' + preview.name} className="checklist-file-thumb" />)}
+                                <span className="checklist-file-meta"><span className="checklist-file-name" title={preview.name}>{preview.name}</span><span className="checklist-file-size"> · {preview.sizeLabel}</span></span>
+                                <button type="button" className="checklist-replace-btn" onClick={function () { const inp = files.current[row.doc_type]; if (inp) inp.click(); }}>change</button>
+                              </div>
+                            )}
+                            {busy === row.doc_type && (<p className="checklist-upload-status mono">Uploading…</p>)}
+                            {uploadErrors[row.doc_type] && (<p className="checklist-upload-error">{uploadErrors[row.doc_type]}</p>)}
+                          </div>
+                        );
+                        if (needsDirect) return uploadControls;
+                        if (!isOpen) {
+                          return (<div className="checklist-upload-replace"><button type="button" className="checklist-replace-btn" onClick={function () { setReplaceOpen(function (p) { return Object.assign({}, p, { [repKey]: true }); }); }}>replace photo</button></div>);
+                        }
+                        return (<div><div className="checklist-upload-replace"><button type="button" className="checklist-replace-btn" onClick={function () { setReplaceOpen(function (p) { return Object.assign({}, p, { [repKey]: false }); }); }}>cancel</button></div>{uploadControls}</div>);
+                      })()}
+                      {renderApplicantClarifications(row)}
+                    </>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+                <span className={'checklist-tag ' + tag.cls}>{tag.text}</span>
+              </div>
+              );
+            })}
+          </div>
+          <p className="checklist-foot mono" style={{ marginTop: 16 }}>Sample documents only. Uploads are deleted after 7 days. A person always decides.</p>
         </section>
         )}
         {view === 'reviewer' && (
@@ -537,19 +841,46 @@ export default function SetClient() {
         </section>
         )}
         {(data.process && Array.isArray(data.process.not_checked) && data.process.not_checked.length > 0) && (
-          <section style={{ border: '1px solid #a60', borderRadius: 8, padding: 12, marginBottom: 8 }}>
-            <h3>Check by hand</h3>
-            <p><small>Suri can&apos;t check these yet. A person will need to:</small></p>
-            <ul>{data.process.not_checked.map((t, i) => (<li key={i}>{t}</li>))}</ul>
+          <section className="checklist-hand" style={{ marginTop: 16 }}>
+            <span className="checklist-hand-title mono">CHECK BY HAND</span>
+            <p className="checklist-hand-note">Suri can&apos;t check these yet. A person will need to:</p>
+            <ul className="checklist-hand-list">{data.process.not_checked.map(function (t, i) { return (<li key={i}>{t}</li>); })}</ul>
           </section>
         )}
-        <aside className="set-log">
-          <h2>Suri&apos;s work log</h2>
-          {(data.work_log || []).length === 0 && <p>(nothing yet)</p>}
-          <ol>
-            {(data.work_log || []).map((w, i) => (<li key={i}><small>{w.step_type}</small>: {w.message}</li>))}
+        <aside className="checklist-log">
+          <div className="checklist-log-head"><span className="checklist-log-title mono">01 — what suri did</span><span className="checklist-log-badge mono">WORK LOG</span></div>
+          {(data.work_log || []).length === 0 && <p style={{ fontSize: 14, color: 'var(--text-2)' }}>(nothing yet)</p>}
+          <ol className="checklist-log-list">
+            {(function () {
+              const raw = data.work_log || [];
+              const seen = initialLogSeenRef.current;
+              const mapped = raw.map(function (e) { return { sentence: workLogSentence(e), time: e.created_at, raw: e, dotColor: logDotColor(e), isNew: seen ? !seen.has(e.created_at) : false, relative: formatLogTime(e.created_at), full: formatLogFullTime(e.created_at) }; });
+              const reversed = mapped.slice().reverse();
+              const collapsed = [];
+              reversed.forEach(function (item) {
+                const last = collapsed[collapsed.length - 1];
+                if (last && last.sentence === item.sentence) { last.count = (last.count || 1) + 1; if (item.isNew) last.isNew = true; } else { collapsed.push({ sentence: item.sentence, time: item.time, dotColor: item.dotColor, isNew: item.isNew, relative: item.relative, full: item.full, count: 1 }); }
+              });
+              const visible = showAllLog ? collapsed : collapsed.slice(0, 5);
+              return (
+                <>
+                  {visible.map(function (entry, idx) {
+                    const label = entry.count > 1 ? entry.sentence + ' \u00d7' + entry.count : entry.sentence;
+                    const rowCls = entry.isNew ? 'checklist-log-row checklist-log-row--new' : 'checklist-log-row';
+                    return (<li key={idx} className={rowCls}><span className="checklist-log-dot" style={{ background: entry.dotColor }} aria-hidden="true"></span><span className="checklist-log-text">{label}</span><span className="checklist-log-time mono" title={entry.full}>{entry.relative}</span></li>);
+                  })}
+                  {collapsed.length > 5 && !showAllLog && (
+                    <li style={{ listStyle: 'none' }}><button type="button" className="checklist-log-more" onClick={function () { setShowAllLog(true); }}>Show all ({collapsed.length})</button></li>
+                  )}
+                  {collapsed.length > 5 && showAllLog && (
+                    <li style={{ listStyle: 'none' }}><button type="button" className="checklist-log-more" onClick={function () { setShowAllLog(false); }}>Show less</button></li>
+                  )}
+                </>
+              );
+            })()}
           </ol>
         </aside>
+        </div>
       </div>
     </main>
   );
