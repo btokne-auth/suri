@@ -4,6 +4,7 @@
 // No single-document page, no free-text description.
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import SuriHeader from '../../components/SuriHeader.js';
 const BTN = { padding: '12px 16px', minHeight: 48, fontSize: 16, width: '100%' };
 const SMALLBTN = { padding: '10px 12px', minHeight: 44, fontSize: 16, marginRight: 8, marginTop: 8 };
 const RESCOLOR = { match: '#0a0', check: '#a60', mismatch: '#a00', invalid: '#a00' };
@@ -353,7 +354,19 @@ export default function SetClient() {
   async function handleOcrCopy(text) {
     try { if (navigator && navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text || ''); } catch {}
   }
-  if (!data) return (<main className="set-page"><h1>Your checklist</h1><p>{msg}</p></main>);
+  if (!data) {
+    const isLoading = msg === 'Loading...';
+    return (
+      <main className="checklist-page">
+        <SuriHeader />
+        <div className="checklist-intro">
+          <span className="checklist-intro-label mono">YOUR PAPERS</span>
+          <h1 className="checklist-h1 mono">Your checklist</h1>
+        </div>
+        <p className="mono" style={{ color: 'var(--text-3)', fontSize: '13px', marginTop: 16 }}>{isLoading ? 'Loading your checklist…' : (msg || 'Could not load.')}</p>
+      </main>
+    );
+  }
   const fieldsMap = data.fields || {};
   const checksAll = data.checks || [];
   const reviewsAll = data.review_actions || [];

@@ -5,7 +5,7 @@
 // plus a "Set up your own check" link to /setup.
 'use client';
 import { useEffect, useState } from 'react';
-const BTN = { padding: '14px 20px', minHeight: 48, fontSize: 17, width: '100%' };
+import SuriHeader from '../components/SuriHeader.js';
 export default function StartClient() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
@@ -49,32 +49,52 @@ export default function StartClient() {
     } catch { setMsg('Could not start. Please try again.'); setBusy(false); }
   }
   function row(p) {
+    const selected = picked === p.id;
     return (
-      <label key={p.id} style={{ display: 'block', border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 8, minHeight: 44 }}>
-        <input type="radio" name="process" checked={picked === p.id} onChange={() => setPicked(p.id)} /> {p.label}
+      <label key={p.id} className={'start-row' + (selected ? ' start-row--selected' : '')}>
+        <input type="radio" name="process" value={p.id} checked={selected} onChange={() => setPicked(p.id)} className="start-radio" />
+        <span className="start-radio-mark" aria-hidden="true" />
+        <span className="start-row-main">
+          <span className="start-row-name">{p.label}</span>
+        </span>
       </label>
     );
   }
   return (
-    <main className="start-page">
-      <h1>Suri</h1>
-      <p>Check your papers before the office does.</p>
-      <h2>Choose a process</h2>
-      {samples.length === 0 && saved.length === 0 && <p>Loading processes...</p>}
+    <div className="checklist-page start-page">
+      <SuriHeader />
+      <div className="start-intro">
+        <h1 className="checklist-h1">Start a check</h1>
+        <p className="checklist-subtitle">Check your papers before the office does.</p>
+      </div>
+      <div className="landing-section-head">
+        <span className="landing-section-title">01 — choose a process</span>
+      </div>
+      {samples.length === 0 && saved.length === 0 && <p className="checklist-foot">Loading processes...</p>}
       {samples.map(row)}
       {saved.length > 0 && (
         <div id="your-checks" style={{ marginTop: 16 }}>
-          <h2>Your checks</h2>
+          <div className="landing-section-head">
+            <span className="landing-section-title">02 — your checks</span>
+          </div>
           {saved.map(row)}
         </div>
       )}
+      <a href="/setup" className="start-row start-row--setup">
+        <span className="start-setup-mark" aria-hidden="true">+</span>
+        <span className="start-row-main">
+          <span className="start-row-name">Set up your own check</span>
+          <span className="mono" style={{ fontSize: '12px', color: 'var(--text-2)', lineHeight: 1.4 }}>Describe it in plain words. Suri builds the checklist.</span>
+        </span>
+      </a>
       <div style={{ marginTop: 16 }}>
-        <button type="button" onClick={start} disabled={busy || !picked} style={BTN}>Start</button>
+        <button type="button" onClick={start} disabled={busy || !picked} className="checklist-btn-primary" style={{ width: '100%' }}>
+          Start →
+        </button>
       </div>
-      {msg && <p>{msg}</p>}
-      <p><a href="/setup">Set up your own check</a></p>
-      <p><small>Sample documents only. Never upload a real ID.</small></p>
-    </main>
+      {msg && <p className="checklist-msg">{msg}</p>}
+      <p className="checklist-foot" style={{ marginTop: 16 }}>Sample documents only. Never upload a real ID.</p>
+    </div>
   );
 }
 
