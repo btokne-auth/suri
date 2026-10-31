@@ -2,17 +2,15 @@
 // Step 7c Part 3: describe -> confirm. No add-block UI, draft in state only.
 // Phone-first like /start. Server re-validates on Confirm.
 'use client';
-import { useState } from 'react';
-const INP = { display: 'block', width: '100%', maxWidth: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)' };
-const BTN = { padding: '14px 20px', minHeight: 48, fontSize: 17, width: '100%', marginTop: 16 };
-const CARD = { border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 8 };
+import { useEffect, useRef, useState } from 'react';
+import SuriHeader from '../components/SuriHeader.js';
 const EXAMPLE = 'Barangay clearance: valid ID + proof of billing. Names match. Address in Barangay Baybayin. Bill from the last 3 months.';
 function docIdOf(e) { return (e && (e.reuse || e.id)) || ''; }
 function builtinLabel(id) {
-  if (id === 'valid_id') return "Valid ID (voter's ID style)";
+  if (id === 'valid_id') return 'Valid ID';
   if (id === 'birth_certificate') return 'Birth certificate';
-  if (id === 'report_card') return 'Report card (Form 138 style)';
-  if (id === 'official_receipt') return 'Official receipt (sample store)';
+  if (id === 'report_card') return 'Report card';
+  if (id === 'official_receipt') return 'Official receipt';
   return String(id);
 }
 function fieldTypeWord(t) { return String(t || 'text'); }
@@ -103,22 +101,26 @@ export default function SetupClient() {
   const [attempts, setAttempts] = useState([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [moreAnswer, setMoreAnswer] = useState('');
+  const [lastDraftDesc, setLastDraftDesc] = useState('');
+  const answerRef = useRef(null);
   function setLabel(v) { const d = clone(draft); d.label = v; setDraft(d); }
   function setDocLabel(i, v) { const d = clone(draft); if (!d.documents[i].reuse) d.documents[i].label = v; setDraft(d); }
   function setFieldLabel(i, k, v) { const d = clone(draft); const f = (d.documents[i].fields || []).find((x) => x.key === k); if (f) f.label = v; setDraft(d); }
   function setCheckValue(i, v) { const d = clone(draft); if (d.checks[i]) d.checks[i].value = v; setDraft(d); }
   function setCheckMonths(i, v) { const d = clone(draft); if (d.checks[i]) d.checks[i].months = Number(v); setDraft(d); }
   function setReqMessage(v) { const d = clone(draft); if (d.requirement) d.requirement.message = v; setDraft(d); }
-  async function build() {
+  async function build(descOverride) {
+    const descToUse = typeof descOverride === 'string' ? descOverride : description;
     setBusy(true); setMsg('Building your checklist...');
     try {
       await fetch('/api/session', { method: 'POST' });
-      const r = await fetch('/api/setup/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description }) });
+      const r = await fetch('/api/setup/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: descToUse }) });
       const j = await r.json();
       if (Array.isArray(j.attempts)) setAttempts(j.attempts);
-      if (j.needs_more_info) { setNeedsMoreInfo(String(j.needs_more_info)); setDraft(null); setMsg(''); setBusy(false); return; }
+      if (j.needs_more_info) { setNeedsMoreInfo(String(j.needs_more_info)); setDraft(null); setLastDraftDesc(descToUse); setMsg(''); setBusy(false); return; }
       if (!r.ok) { setNeedsMoreInfo(''); setMsg(j.error || 'Could not build. Please try again.'); setBusy(false); return; }
-      setNeedsMoreInfo(''); setDraft(j.draft); setMsg('');
+      setNeedsMoreInfo(''); setDraft(j.draft); setLastDraftDesc(descToUse); setMsg('');
     } catch { setMsg('Could not build. Please try again.'); }
     setBusy(false);
   }
@@ -132,73 +134,175 @@ export default function SetupClient() {
     } catch { setMsg('Could not save. Please try again.'); setBusy(false); }
   }
   const view = localView(draft);
+  const hasDraft = !!draft && !needsMoreInfo;
+  useEffect(() => {
+    if (needsMoreInfo && answerRef.current) {
+      answerRef.current.focus();
+    }
+  }, [needsMoreInfo]);
+  function fieldLabelFallback(key) {
+    const s = String(key || 'value').replace(/_/g, ' ').trim() || 'value';
+    return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+  }
   return (
-    <main className="start-page">
-      <h1>Set up your own check</h1>
-      <p>Describe what you need, in plain words. Suri builds the checklist. You confirm it.</p>
-      <label>Describe your check<textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={EXAMPLE} rows={5} style={Object.assign({}, INP, { minHeight: 120 })} /></label>
-      <button type="button" onClick={build} disabled={busy} style={BTN}>Build my check</button>
-      {msg && <p>{msg}</p>}
+    <div className="checklist-page setup-page">
+      <SuriHeader />
+      <div className="setup-intro">
+        <h1 className="checklist-h1">Set up your own check</h1>
+        <p className="checklist-subtitle">Describe what you need, in plain words. Suri builds the checklist. You confirm it.</p>
+      </div>
+      <div className="landing-section-head">
+        <span className="landing-section-title">01 — describe your check</span>
+      </div>
+      <label className="profile-label">
+        <span className="mono profile-label-text">What do you want to check?</span>
+        <textarea className="setup-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={EXAMPLE} rows={4} />
+        <span className="mono setup-hint">Example: {EXAMPLE}</span>
+      </label>
+      {(!draft && !needsMoreInfo && !lastDraftDesc) ? (
+        <>
+          <button type="button" onClick={() => build()} disabled={busy} className="checklist-btn-primary" style={{ width: '100%', marginTop: 12 }}>
+            Draft my checklist
+          </button>
+          <p className="mono" style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: 8 }}>Suri drafts it first. Nothing is saved until you say so.</p>
+        </>
+      ) : (draft || needsMoreInfo) ? (
+        description !== lastDraftDesc ? (
+          <button type="button" onClick={() => build()} disabled={busy} className="checklist-btn-secondary" style={{ width: '100%', marginTop: 12 }}>
+            Draft again with the new text
+          </button>
+        ) : null
+      ) : null}
+      {msg && <p className="checklist-msg">{msg}</p>}
       {attempts.length > 0 && (
-        <div style={CARD}>
-          <strong>Suri&apos;s work log</strong>
-          <ul>{attempts.map((a, i) => (<li key={i}>Try {a.n}: {a.result === 'ok' ? 'checklist ready' : a.result === 'needs_more_info' ? 'asked for more detail' : 'did not pass validation'}</li>))}</ul>
+        <div className="setup-log">
+          <div className="setup-log-title">Suri&apos;s work log</div>
+          <ul className="checklist-log-list">
+            {attempts.map((a, i) => {
+              const dotColor = a.result === 'ok' ? 'var(--match)' : a.result === 'needs_more_info' ? 'var(--check)' : 'var(--mismatch)';
+              const label = a.result === 'ok' ? 'checklist ready' : a.result === 'needs_more_info' ? 'asked for more detail' : 'did not pass validation';
+              return (
+                <li key={i} className="checklist-log-row">
+                  <span className="checklist-log-dot" style={{ background: dotColor }} />
+                  <span className="checklist-log-text">Try {a.n}: {label}</span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
       {needsMoreInfo && (
-        <div style={CARD}>
-          <p><strong>Suri needs more detail</strong></p>
-          <p>{needsMoreInfo}</p>
-          <p><small>Try: which documents, which fields, what to check.</small></p>
+        <div className="setup-needs-more">
+          <span className="mono setup-needs-label">Suri needs more detail</span>
+          <p className="setup-needs-text">{needsMoreInfo}</p>
+          <p className="setup-needs-hint">Try: which documents, which fields, what to check.</p>
+          <label className="profile-label" style={{ marginTop: 12 }}>
+            <span className="mono profile-label-text">Your answer</span>
+            <textarea ref={answerRef} className="setup-textarea" value={moreAnswer} onChange={(e) => setMoreAnswer(e.target.value)} rows={3} />
+          </label>
+          <button type="button" onClick={async () => { const a = moreAnswer.trim(); if (!a) return; const next = description ? description + "\n\n" + a : a; setDescription(next); await build(next); }} disabled={busy} className="checklist-btn-primary" style={{ width: '100%', marginTop: 8 }}>
+            Answer and rebuild
+          </button>
         </div>
       )}
       {draft && !needsMoreInfo && (
         <div>
-          <h2>Your checklist</h2>
-          <label>Check name<input value={draft.label || ''} onChange={(e) => setLabel(e.target.value)} style={INP} /></label>
+          <div className="landing-section-head" style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="landing-section-title">02 — your checklist</span>
+            <span className="mono" style={{ fontSize: '10px', letterSpacing: '0.08em', color: 'var(--check)', border: '1px solid var(--check)', borderRadius: '4px', padding: '2px 6px' }}>DRAFT · NOT SAVED YET</span>
+          </div>
+          <label className="profile-label">
+            <span className="mono profile-label-text">Check name</span>
+            <input className="profile-input" value={draft.label || ''} onChange={(e) => setLabel(e.target.value)} />
+          </label>
           {(draft.documents || []).map((entry, di) => {
             const id = docIdOf(entry);
             if (entry.reuse) {
-              return (<div key={id} style={CARD}><strong>{builtinLabel(id)}</strong><p><small>Reused as-is.</small></p></div>);
+              return (
+                <div key={id} className="setup-doc-card">
+                  <div className="setup-doc-title">{builtinLabel(id)}</div>
+                  <span className="mono setup-reused">Reused as-is.</span>
+                </div>
+              );
             }
             return (
-              <div key={id} style={CARD}>
-                <label>Document name<input value={entry.label || ''} onChange={(e) => setDocLabel(di, e.target.value)} style={INP} /></label>
+              <div key={id} className="setup-doc-card">
+                <label className="profile-label">
+                  <span className="mono profile-label-text">Document name</span>
+                  <input className="profile-input" value={entry.label || ''} onChange={(e) => setDocLabel(di, e.target.value)} />
+                </label>
                 {(entry.fields || []).map((f) => (
-                  <div key={f.key} style={{ marginTop: 8 }}>
-                    <label>{f.key} ({fieldTypeWord(f.type)}{f.required ? ', required' : ''})<input value={f.label || ''} onChange={(e) => setFieldLabel(di, f.key, e.target.value)} style={INP} /></label>
-                    <button type="button" onClick={() => setDraft(removeField(draft, di, f.key))} style={{ minHeight: 44, fontSize: 16, marginTop: 4 }}>Remove this field</button>
+                  <div key={f.key} className="setup-field-row">
+                    <label className="profile-label">
+                      <span className="setup-field-label">
+                        {f.label || fieldLabelFallback(f.key)} <span className="mono setup-field-meta">· {fieldTypeWord(f.type)} · {f.required ? 'required' : 'optional'}</span>
+                      </span>
+                      <input className="profile-input" value={f.label || ''} onChange={(e) => setFieldLabel(di, f.key, e.target.value)} placeholder={fieldLabelFallback(f.key)} />
+                    </label>
+                    <button type="button" onClick={() => setDraft(removeField(draft, di, f.key))} className="mono setup-text-btn">
+                      Remove this field
+                    </button>
                   </div>
                 ))}
               </div>
             );
           })}
-          <h3>Checks</h3>
+          <div className="landing-section-head">
+            <span className="landing-section-title">03 — checks</span>
+          </div>
           {(draft.checks || []).map((c, ci) => (
-            <div key={ci} style={CARD}>
-              <p>{view && view.checks && view.checks[ci] ? view.checks[ci] : 'Check this document.'}</p>
-              {(c.rule === 'equals' || c.rule === 'contains') && (<label>Value<input value={c.value || ''} onChange={(e) => setCheckValue(ci, e.target.value)} style={INP} /></label>)}
-              {c.rule === 'within_months' && (<label>Months<input type="number" min={1} max={24} value={c.months || ''} onChange={(e) => setCheckMonths(ci, e.target.value)} style={INP} /></label>)}
-              <p><small>{String(c.message || '')}</small></p>
-              <button type="button" onClick={() => setDraft(removeCheck(draft, ci))} style={{ minHeight: 44, fontSize: 16, marginTop: 4 }}>Remove this check</button>
+            <div key={ci} className="setup-check-card">
+              <span className="mono setup-check-label">Check 0{ci + 1}</span>
+              <p className="setup-check-text">{view && view.checks && view.checks[ci] ? view.checks[ci] : 'Check this document.'}</p>
+              {(c.rule === 'equals' || c.rule === 'contains') && (
+                <label className="profile-label">
+                  <span className="mono profile-label-text">Value</span>
+                  <input className="profile-input" value={c.value || ''} onChange={(e) => setCheckValue(ci, e.target.value)} />
+                </label>
+              )}
+              {c.rule === 'within_months' && (
+                <label className="profile-label">
+                  <span className="mono profile-label-text">Months</span>
+                  <input className="profile-input" type="number" min={1} max={24} value={c.months || ''} onChange={(e) => setCheckMonths(ci, e.target.value)} />
+                </label>
+              )}
+              {c.message && <p className="checklist-foot">{String(c.message || '')}</p>}
+              <button type="button" onClick={() => setDraft(removeCheck(draft, ci))} className="mono setup-text-btn">
+                Remove this check
+              </button>
             </div>
           ))}
           {draft.requirement && (
-            <div style={CARD}>
-              <p><strong>First gate:</strong> {String(draft.requirement.field).replace(/_/g, ' ')} on {draft.requirement.document} {draft.requirement.op} &quot;{draft.requirement.value}&quot;.</p>
-              <label>Gate message<input value={draft.requirement.message || ''} onChange={(e) => setReqMessage(e.target.value)} style={INP} /></label>
+            <div className="setup-requirement-card">
+              <span className="mono setup-check-label">First gate</span>
+              <p className="setup-check-text">
+                {String(draft.requirement.field).replace(/_/g, ' ')} on {draft.requirement.document} {draft.requirement.op} &quot;{draft.requirement.value}&quot;.
+              </p>
+              <label className="profile-label">
+                <span className="mono profile-label-text">Gate message</span>
+                <input className="profile-input" value={draft.requirement.message || ''} onChange={(e) => setReqMessage(e.target.value)} />
+              </label>
             </div>
           )}
           {(draft.not_checked || []).length > 0 && (
-            <div style={Object.assign({}, CARD, { borderColor: '#a60' })}>
-              <p><strong>Suri can&apos;t check these yet. A person will need to:</strong></p>
-              <ul>{(draft.not_checked || []).map((t, i) => (<li key={i}>{t}</li>))}</ul>
+            <div className="setup-not-checked">
+              <p className="setup-not-checked-title">Suri can&apos;t check these yet — a person will need to:</p>
+              <ul className="setup-not-checked-list">
+                {(draft.not_checked || []).map((t, i) => (
+                  <li key={i}>{t}</li>
+                ))}
+              </ul>
             </div>
           )}
-          <button type="button" onClick={confirm} disabled={busy} style={BTN}>Confirm and save</button>
+          <p className="mono" style={{ color: 'var(--text-2)', fontSize: '12px', marginTop: 12 }}>Looks right? Save it so you can start it from Your checks.</p>
+          <button type="button" onClick={confirm} disabled={busy} className="checklist-btn-primary" style={{ width: '100%', marginTop: 8 }}>
+            Save to Your checks
+          </button>
         </div>
       )}
-      <p><small>Sample documents only. Never upload a real ID.</small></p>
-    </main>
+      <p className="checklist-foot" style={{ marginTop: 16 }}>
+        Sample documents only. Never upload a real ID.
+      </p>
+    </div>
   );
 }

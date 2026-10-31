@@ -4,9 +4,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-const INP = { display: 'block', width: '100%', maxWidth: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)' };
-const BTN = { padding: '14px 20px', minHeight: 48, fontSize: 17, width: '100%', marginTop: 16 };
-const ERR = { color: '#a00', margin: '4px 0 12px' };
+import SuriHeader from '../components/SuriHeader.js';
 const MONTHS = [['01', 'January'], ['02', 'February'], ['03', 'March'], ['04', 'April'], ['05', 'May'], ['06', 'June'], ['07', 'July'], ['08', 'August'], ['09', 'September'], ['10', 'October'], ['11', 'November'], ['12', 'December']];
 export default function ProfileClient() {
   const [sub] = useState(() => {
@@ -62,45 +60,100 @@ export default function ProfileClient() {
       }
       setMsg('Saved.');
       if (sub) window.location.href = '/set/' + encodeURIComponent(sub);
-      else setMsg('Saved. Go back and open your checklist.');
+      else setMsg('Saved.');
     } catch { setMsg('Could not save. Please try again.'); }
   }
+  function formatBirthDateError(m) {
+    const s = String(m || '');
+    if (s.includes('YYYY-MM-DD')) return 'Enter your birth date using the Month, Day, and Year fields above.';
+    return s;
+  }
+  const hasErrs = Object.keys(errs).length > 0;
+  const errValues = Object.values(errs);
+  const shouldShowMsg = (() => {
+    if (!msg) return false;
+    if (msg === 'Saved.' && !sub) return false;
+    if (msg === 'Saving...') return true;
+    if (msg === 'Please fix the fields below.' && hasErrs) return false;
+    if (errValues.includes(msg)) return false;
+    return true;
+  })();
   return (
-    <main className="profile-page">
-      <h1>Your details</h1>
-      <p>Type what is on your documents. Suri compares them to this.</p>
-      <form onSubmit={save} noValidate>
-        <label>Given name<input value={form.given_name} onChange={(e) => set('given_name', e.target.value)} style={INP} autoComplete="given-name" /></label>
-        {errs.given_name && <p style={ERR}>{errs.given_name}</p>}
-        <label>Middle name (optional)<input value={form.middle_name} onChange={(e) => set('middle_name', e.target.value)} style={INP} autoComplete="additional-name" /></label>
-        {errs.middle_name && <p style={ERR}>{errs.middle_name}</p>}
-        <label>Surname<input value={form.surname} onChange={(e) => set('surname', e.target.value)} style={INP} autoComplete="family-name" /></label>
-        {errs.surname && <p style={ERR}>{errs.surname}</p>}
-        <label>Suffix (Jr, Sr, II, III, IV, optional)<input value={form.suffix} onChange={(e) => set('suffix', e.target.value)} style={INP} /></label>
-        {errs.suffix && <p style={ERR}>{errs.suffix}</p>}
-        <div style={{ marginTop: 12 }}>
-          <span>Birth date</span>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-            <label htmlFor="birth_month" style={{ flex: '1 1 110px' }}>Month
-              <select id="birth_month" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)} style={INP}>
+    <div className="checklist-page profile-page">
+      <SuriHeader />
+      <div className="profile-intro">
+        <h1 className="checklist-h1">Your details</h1>
+        <p className="checklist-subtitle">Type what is on your documents. Suri compares them to this.</p>
+      </div>
+      <form onSubmit={save} noValidate className="profile-form">
+        <label className="profile-label">
+          <span className="mono profile-label-text">Given name</span>
+          <input className="profile-input" value={form.given_name} onChange={(e) => set('given_name', e.target.value)} autoComplete="given-name" />
+        </label>
+        {errs.given_name && <span className="profile-error">{errs.given_name}</span>}
+        <label className="profile-label">
+          <span className="mono profile-label-text">Middle name (optional)</span>
+          <input className="profile-input" value={form.middle_name} onChange={(e) => set('middle_name', e.target.value)} autoComplete="additional-name" />
+        </label>
+        {errs.middle_name && <span className="profile-error">{errs.middle_name}</span>}
+        <label className="profile-label">
+          <span className="mono profile-label-text">Surname</span>
+          <input className="profile-input" value={form.surname} onChange={(e) => set('surname', e.target.value)} autoComplete="family-name" />
+        </label>
+        {errs.surname && <span className="profile-error">{errs.surname}</span>}
+        <label className="profile-label">
+          <span className="mono profile-label-text">Suffix (Jr, Sr, II, III, IV, optional)</span>
+          <input className="profile-input" value={form.suffix} onChange={(e) => set('suffix', e.target.value)} />
+        </label>
+        {errs.suffix && <span className="profile-error">{errs.suffix}</span>}
+        <div style={{ marginTop: 4 }}>
+          <span className="mono profile-label-text">Birth date</span>
+          <div className="profile-birth-row">
+            <label htmlFor="birth_month" className="profile-label" style={{ flex: '1 1 110px' }}>
+              <span className="mono profile-label-text">Month</span>
+              <select id="birth_month" className="profile-input" value={birthMonth} onChange={(e) => setBirthMonth(e.target.value)}>
                 <option value="">Month</option>
-                {MONTHS.map(([v, label]) => (<option key={v} value={v}>{label}</option>))}
+                {MONTHS.map(([v, label]) => (
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </label>
-            <label htmlFor="birth_day" style={{ flex: '1 1 60px' }}>Day
-              <input id="birth_day" type="text" inputMode="numeric" maxLength={2} placeholder="Day" value={birthDay} onChange={(e) => setBirthDay(e.target.value)} style={INP} />
+            <label htmlFor="birth_day" className="profile-label" style={{ flex: '1 1 60px' }}>
+              <span className="mono profile-label-text">Day</span>
+              <input id="birth_day" className="profile-input" type="text" inputMode="numeric" maxLength={2} placeholder="Day" value={birthDay} onChange={(e) => setBirthDay(e.target.value)} />
             </label>
-            <label htmlFor="birth_year" style={{ flex: '1 1 80px' }}>Year
-              <input id="birth_year" type="text" inputMode="numeric" maxLength={4} placeholder="Year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} style={INP} />
+            <label htmlFor="birth_year" className="profile-label" style={{ flex: '1 1 80px' }}>
+              <span className="mono profile-label-text">Year</span>
+              <input id="birth_year" className="profile-input" type="text" inputMode="numeric" maxLength={4} placeholder="Year" value={birthYear} onChange={(e) => setBirthYear(e.target.value)} />
             </label>
           </div>
         </div>
-        {errs.birth_date && <p style={ERR}>{errs.birth_date}</p>}
-        <label>City / municipality<input value={form.city_municipality} onChange={(e) => set('city_municipality', e.target.value)} style={INP} autoComplete="address-level2" /></label>
-        {errs.city_municipality && <p style={ERR}>{errs.city_municipality}</p>}
-        <button type="submit" style={BTN}>Save and continue</button>
+        {errs.birth_date && <span className="profile-error">{formatBirthDateError(errs.birth_date)}</span>}
+        <label className="profile-label">
+          <span className="mono profile-label-text">City / municipality</span>
+          <input className="profile-input" value={form.city_municipality} onChange={(e) => set('city_municipality', e.target.value)} autoComplete="address-level2" />
+        </label>
+        {errs.city_municipality && <span className="profile-error">{errs.city_municipality}</span>}
+        <button type="submit" className="checklist-btn-primary" style={{ width: '100%' }}>
+          Save and continue
+        </button>
       </form>
-      {msg && <p>{msg}</p>}
-    </main>
+      {shouldShowMsg && <p className="checklist-msg">{msg}</p>}
+      {!sub && msg === 'Saved.' && (
+        <>
+          <p className="checklist-msg">Saved.</p>
+          <p style={{ marginTop: 12 }}>
+            <a href="/start" className="landing-section-link">
+              Start a check →
+            </a>
+          </p>
+        </>
+      )}
+      <p className="checklist-foot" style={{ marginTop: 16 }}>
+        Sample documents only. Never upload a real ID.
+      </p>
+    </div>
   );
 }
