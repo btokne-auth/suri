@@ -1,5 +1,6 @@
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import "./suri-components.css";
 
 const manrope = Manrope({
   variable: "--font-manrope",

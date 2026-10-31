@@ -89,7 +89,7 @@ export async function GET(request, ctx) {
     }
   } catch {}
   if (docIds.length > 0) {
-    const { data: cr } = await admin.from('check_results').select('document_id,compared_document_id,field_key,rule,result,reason').in('document_id', docIds);
+    const { data: cr } = await admin.from('check_results').select('id,document_id,compared_document_id,field_key,rule,result,reason').in('document_id', docIds);
     // Attach the "same as X" label from settings: null means the profile,
     // otherwise the compared document's type label (never hard-coded).
     const typeByDocId = {};
@@ -224,9 +224,10 @@ export async function GET(request, ctx) {
             }
           }
           if (docClarifications.length === 0) {
+            const mineIds2 = new Set(mine.map(function(ch){ return ch.id; }));
             for (const ch of mine) {
               if (ch.result !== 'check') continue;
-              const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key; });
+              const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key && (!cl.check_result_id || mineIds2.has(cl.check_result_id)); });
               for (const cand of cands) {
                 if (!seen.has(cand.id)) {
                   docClarifications.push(cand);
@@ -245,7 +246,7 @@ export async function GET(request, ctx) {
             reason = unanswered.question;
           } else {
             action = 'answered, a person will decide';
-            reason = 'answered, a person will decide';
+            reason = 'You answered. A person will decide.';
           }
         } else {
           action = 'please confirm';
@@ -281,9 +282,11 @@ export async function GET(request, ctx) {
           }
         }
         // Fallback to any clarification with same field_key if pair_key didn't match (e.g., profile case with missing extracted value)
+        // Strict: only attach if clarification's check_result_id matches this doc's checks to avoid showing on every card
         if (docClarifications.length === 0) {
+          const mineIds = new Set(mineAll.map(function(ch){ return ch.id; }));
           for (const ch of mineAll) {
-            const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key; });
+            const cands = clarifications.filter(function (cl) { return cl.field_key === ch.field_key && (!cl.check_result_id || mineIds.has(cl.check_result_id)); });
             for (const cand of cands) {
               if (!seen2.has(cand.id)) {
                 docClarifications.push(cand);
