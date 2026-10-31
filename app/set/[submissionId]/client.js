@@ -536,6 +536,13 @@ export default function SetClient() {
           })}
         </section>
         )}
+        {(data.process && Array.isArray(data.process.not_checked) && data.process.not_checked.length > 0) && (
+          <section style={{ border: '1px solid #a60', borderRadius: 8, padding: 12, marginBottom: 8 }}>
+            <h3>Check by hand</h3>
+            <p><small>Suri can&apos;t check these yet. A person will need to:</small></p>
+            <ul>{data.process.not_checked.map((t, i) => (<li key={i}>{t}</li>))}</ul>
+          </section>
+        )}
         <aside className="set-log">
           <h2>Suri&apos;s work log</h2>
           {(data.work_log || []).length === 0 && <p>(nothing yet)</p>}
