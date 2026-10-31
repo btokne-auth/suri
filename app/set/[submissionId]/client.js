@@ -530,6 +530,17 @@ export default function SetClient() {
     const label = docLabelForLog(w);
     const m = String(w.message || '');
     if (t === 'upload' || t.includes('upload')) return 'Received \u00b7 ' + label;
+    if (t === 'reading_retry' || t.includes('reading_retry')) return 'Reading again to double-check \u00b7 ' + label;
+    if (t === 'retake_needed' || t === 'retake') return 'Asked for a clearer photo \u00b7 ' + label;
+    if (t === 'wrong_document') return 'Looks like a different document \u00b7 ' + label;
+    if (t === 'reading_failed') return 'Couldn\'t finish reading \u00b7 ' + label;
+    if (t === 'requirement_check') return m || 'Suri updated your checklist.';
+    if (t === 'requirement_override') return 'A reviewer overrode the requirement';
+    if (t === 'check_failed') return 'A check couldn\'t run';
+    if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) return 'Suri skipped a question';
+    if (t === 'review_approve' || t.includes('review_approve')) return 'A reviewer approved \u00b7 ' + label;
+    if (t === 'review_reject' || t.includes('review_reject')) return 'A reviewer rejected \u00b7 ' + label;
+    if (t === 'review_correct' || t.includes('review_correct')) return 'A reviewer corrected \u00b7 ' + label;
     if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'Reading \u00b7 ' + label;
     if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
       const num = (m.match(/\d+/) || [])[0];
@@ -579,11 +590,26 @@ export default function SetClient() {
   function logDotColor(w) {
     if (!w) return 'var(--text-3)';
     const t = String(w.step_type || '').toLowerCase();
+    const m = String(w.message || '');
     if (t === 'upload' || t.includes('upload')) return 'var(--text-3)';
+    if (t === 'reading_retry' || t.includes('reading_retry')) return 'var(--accent)';
+    if (t === 'retake_needed') return 'var(--mismatch)';
+    if (t === 'wrong_document') return 'var(--mismatch)';
+    if (t === 'reading_failed') return 'var(--mismatch)';
+    if (t === 'requirement_check') {
+      if (m.toLowerCase().includes('passed')) return 'var(--match)';
+      return 'var(--mismatch)';
+    }
+    if (t === 'requirement_override') return 'var(--check)';
+    if (t === 'check_failed') return 'var(--check)';
+    if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) return 'var(--text-3)';
+    if (t === 'review_approve' || t.includes('review_approve')) return 'var(--match)';
+    if (t === 'review_reject' || t.includes('review_reject')) return 'var(--mismatch)';
+    if (t === 'review_correct' || t.includes('review_correct')) return 'var(--check)';
     if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'var(--text-3)';
     if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) return 'var(--accent)';
     if (t === 'check_finished' || t.includes('check')) {
-      const counts = parseCheckCounts(String(w.message || ''));
+      const counts = parseCheckCounts(m);
       if (counts) {
         if (counts.mismatch > 0) return 'var(--mismatch)';
         if (counts.confirm > 0) return 'var(--check)';
