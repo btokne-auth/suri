@@ -18,6 +18,9 @@ function fieldLabelFallback(key) {
 function humanFieldLabel(key) {
   return fieldLabelFallback(key);
 }
+function displayDocLabel(label) {
+  return String(label || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
 function formatFileSize(bytes) {
   const n = Number(bytes) || 0;
   if (n < 1024) return n + ' B';
@@ -202,7 +205,7 @@ export default function SetClient() {
       if (!r.ok) { setDocFeedback(function (p) { return Object.assign({}, p, { [feedbackKey]: { text: 'Reviewer action failed: ' + (j.error || r.status), ts: Date.now() } }); }); }
       else {
         let docLabel = 'Document';
-        try { const rr = (data && data.rows) ? data.rows.find(function(rw){return rw && rw.document_id===docId;}) : null; if (rr && rr.label) docLabel = rr.label; } catch {}
+        try { const rr = (data && data.rows) ? data.rows.find(function(rw){return rw && rw.document_id===docId;}) : null; if (rr && rr.label) docLabel = displayDocLabel(rr.label); } catch {}
         let msgText = '';
         if (action === 'approve') msgText = '✓ ' + docLabel + ' approved.';
         else if (action === 'reject') msgText = '✓ ' + docLabel + ' rejected.';
@@ -410,10 +413,10 @@ export default function SetClient() {
     return false;
   }
   function comparedLabelText(c) {
-    if (c && c.compared_label) return c.compared_label;
+    if (c && c.compared_label) return displayDocLabel(c.compared_label);
     if (!c || !c.compared_document_id) return 'your profile';
     const t = docTypeById[c.compared_document_id];
-    return (t && labelByType[t]) || 'the other document';
+    return displayDocLabel((t && labelByType[t]) || 'the other document');
   }
   // Rows saved earlier may end with a baked-in "— same as ...": strip it so
   // the line never says it twice.
@@ -513,7 +516,7 @@ export default function SetClient() {
   }
   function plainReason(reason) {
     const s = String(reason || '');
-    return s.replace(' (form 138 style)', '').replace(/\s*\([^)]*\)\s*$/, '').trim() || s;
+    return displayDocLabel(s.replace(' (form 138 style)', '')) || s;
   }
   function reviewerDecisionText(docId, reviews) {
     const list = (reviews || []).filter(function (r) { return r && r.document_id === docId && (r.action === 'approve' || r.action === 'reject'); });
@@ -527,12 +530,12 @@ export default function SetClient() {
     if (!w) return 'your document';
     const raw = String((w.message || '') + ' ' + (w.step_type || '')).toLowerCase();
     for (const rr of (data.rows || [])) {
-      if (rr && rr.doc_type && raw.includes(rr.doc_type)) return rr.label || rr.doc_type.replace(/_/g, ' ');
+      if (rr && rr.doc_type && raw.includes(rr.doc_type)) return displayDocLabel(rr.label) || rr.doc_type.replace(/_/g, ' ');
     }
     for (const rr of (data.rows || [])) {
       if (rr && rr.label) {
         const ll = String(rr.label).toLowerCase();
-        if (ll && raw.includes(ll.toLowerCase().slice(0, 8))) return rr.label;
+        if (ll && raw.includes(ll.toLowerCase().slice(0, 8))) return displayDocLabel(rr.label);
       }
     }
     if (data && data.process && data.process.label) return data.process.label;
@@ -568,41 +571,43 @@ export default function SetClient() {
     return { match: match ?? 0, confirm: confirm ?? 0, mismatch: mismatch ?? 0 };
   }
   function workLogSentence(w) {
-    if (!w) return 'Suri updated your checklist.';
+    if (!w) return 'Suri · Suri updated your checklist.';
     const t = String(w.step_type || '').toLowerCase();
     const label = docLabelForLog(w);
     const m = String(w.message || '');
-    if (t === 'upload' || t.includes('upload')) return 'Received \u00b7 ' + label;
-    if (t === 'reading_retry' || t.includes('reading_retry')) return 'Reading again to double-check \u00b7 ' + label;
-    if (t === 'retake_needed' || t === 'retake') return 'Asked for a clearer photo \u00b7 ' + label;
-    if (t === 'wrong_document') return 'Looks like a different document \u00b7 ' + label;
-    if (t === 'reading_failed') return 'Couldn\'t finish reading \u00b7 ' + label;
-    if (t === 'requirement_check') return m || 'Suri updated your checklist.';
-    if (t === 'requirement_override') return 'A reviewer overrode the requirement';
-    if (t === 'check_failed') return 'A check couldn\'t run';
-    if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) return 'Suri skipped a question';
-    if (t === 'review_approve' || t.includes('review_approve')) return 'A reviewer approved \u00b7 ' + label;
-    if (t === 'review_reject' || t.includes('review_reject')) return 'A reviewer rejected \u00b7 ' + label;
-    if (t === 'review_correct' || t.includes('review_correct')) return 'A reviewer corrected \u00b7 ' + label;
-    if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'Reading \u00b7 ' + label;
-    if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
+    let base = '';
+    if (t === 'upload' || t.includes('upload')) base = 'Received \u00b7 ' + label;
+    else if (t === 'reading_retry' || t.includes('reading_retry')) base = 'Reading again to double-check \u00b7 ' + label;
+    else if (t === 'retake_needed' || t === 'retake') base = 'Asked for a clearer photo \u00b7 ' + label;
+    else if (t === 'wrong_document') base = 'Looks like a different document \u00b7 ' + label;
+    else if (t === 'reading_failed') base = 'Couldn\'t finish reading \u00b7 ' + label;
+    else if (t === 'requirement_check') base = m || 'Suri updated your checklist.';
+    else if (t === 'requirement_override') base = 'A reviewer overrode the requirement';
+    else if (t === 'check_failed') base = 'A check couldn\'t run';
+    else if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) base = 'Suri skipped a question';
+    else if (t === 'review_approve' || t.includes('review_approve')) base = 'A reviewer approved \u00b7 ' + label;
+    else if (t === 'review_reject' || t.includes('review_reject')) base = 'A reviewer rejected \u00b7 ' + label;
+    else if (t === 'review_correct' || t.includes('review_correct')) base = 'A reviewer corrected \u00b7 ' + label;
+    else if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) base = 'Reading \u00b7 ' + label;
+    else if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
       const num = (m.match(/\d+/) || [])[0];
-      return num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label;
-    }
-    if (t === 'check_finished' || t.includes('check')) {
+      base = num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label;
+    } else if (t === 'check_finished' || t.includes('check')) {
       const counts = parseCheckCounts(m);
       if (counts) {
         let s = 'Checked \u00b7 ' + counts.match + ' match';
         if (counts.confirm > 0) s += ' \u00b7 ' + counts.confirm + ' to confirm';
         if (counts.mismatch > 0) s += ' \u00b7 ' + counts.mismatch + ' to fix';
-        return s;
-      }
-      return 'Checked \u00b7 ' + label;
-    }
-    if (t.includes('clarification_asked') || t.includes('asked')) return 'Asked \u00b7 ' + label;
-    if (t.includes('clarification_answered') || t.includes('answered')) return 'Answered \u00b7 ' + label;
-    if (t.includes('review')) return 'Reviewed \u00b7 ' + label;
-    return 'Suri updated your checklist.';
+        base = s;
+      } else base = 'Checked \u00b7 ' + label;
+    } else if (t.includes('clarification_asked') || t.includes('asked')) base = 'Asked \u00b7 ' + label;
+    else if (t.includes('clarification_answered') || t.includes('answered')) base = 'Answered \u00b7 ' + label;
+    else if (t.includes('review')) base = 'Reviewed \u00b7 ' + label;
+    else base = 'Suri updated your checklist.';
+    let prefix = 'Suri \u00b7 ';
+    if (t === 'review_approve' || t === 'review_reject' || t === 'review_correct' || t === 'requirement_override' || t.includes('review_approve') || t.includes('review_reject') || t.includes('review_correct') || t.includes('requirement_override')) prefix = 'Reviewer \u00b7 ';
+    else if (t === 'clarification_answered' || t.includes('clarification_answered')) prefix = view === 'reviewer' ? 'Applicant \u00b7 ' : 'You \u00b7 ';
+    return prefix + base;
   }
   function formatLogTime(iso) {
     try {
@@ -726,8 +731,8 @@ export default function SetClient() {
                 <span className="checklist-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
                 <div className="checklist-row-main">
                   <span className="checklist-docid mono">DOC-0{idx + 1}</span>
-                  <span className="checklist-docname">{row.label}</span>
-                  <span className="checklist-sentence">{row.reason}</span>
+                  <span className="checklist-docname">{displayDocLabel(row.label)}</span>
+                  <span className="checklist-sentence">{displayDocLabel(row.reason)}</span>
                   {isReading ? (
                     <>
                       <div className="checklist-skeleton" aria-hidden="true">
@@ -775,7 +780,7 @@ export default function SetClient() {
                         const uploadControls = (
                           <>
                             <div className="upload-row">
-                              <label className="upload-btn">+ photo<input type="file" hidden id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" aria-label={'Upload ' + row.label} onChange={handleFilePick(row.doc_type)} /></label>
+                              <label className="upload-btn">+ photo<input type="file" hidden id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" aria-label={'Upload ' + displayDocLabel(row.label)} onChange={handleFilePick(row.doc_type)} /></label>
                               <button className={"upload-btn" + (hasFile ? " upload-btn--primary" : "")} disabled={!hasFile || busy === row.doc_type} onClick={function () { upload(row.doc_type); }}>{busy === row.doc_type ? 'Uploading…' : 'Upload'}</button>
                             </div>
                             {preview && (
@@ -831,7 +836,7 @@ export default function SetClient() {
                     <div className="reviewer-card-header">
                       <span className="reviewer-card-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
                       <span className="reviewer-card-docid mono">DOC-0{idx + 1}</span>
-                      <span className="reviewer-card-name">{row.label}</span>
+                      <span className="reviewer-card-name">{displayDocLabel(row.label)}</span>
                       <span className="reviewer-card-sentence">{plainReason(row.reason)}</span>
                       <span className={'reviewer-card-tag ' + tagCls}>{tag.text}</span>
                     </div>
@@ -839,11 +844,11 @@ export default function SetClient() {
                   </>
                 );
               }()}
-              {!row.document_id && (<p style={{ fontSize: 14, color: 'var(--text-2)', marginTop: 12 }}>(not uploaded yet)</p>)}
+              {!row.document_id && null}
               {row.document_id && (
               <>
               <div className="rv-body">
-                <div className="rv-photo"><a href={imgUrls[row.document_id]} target="_blank" rel="noopener noreferrer"><img src={imgUrls[row.document_id]} alt={row.label + " photo"} /></a><div className="rv-photo-hint">Click to open full size</div></div>
+                <div className="rv-photo"><a href={imgUrls[row.document_id]} target="_blank" rel="noopener noreferrer"><img src={imgUrls[row.document_id]} alt={displayDocLabel(row.label) + " photo"} /></a><div className="rv-photo-hint">Click to open full size</div></div>
                 <div>
                   <div className="reviewer-fields">
                   {docFields.length === 0 && <p>(no fields read yet)</p>}
@@ -965,7 +970,7 @@ export default function SetClient() {
           </section>
         )}
         <aside className="checklist-log">
-          <div className="checklist-log-head"><span className="checklist-log-title mono">01 — what suri did</span><span className="checklist-log-badge mono">WORK LOG</span></div>
+          <div className="checklist-log-head"><span className="checklist-log-title mono">01 — activity</span><span className="checklist-log-badge mono">WORK LOG</span></div>
           {(data.work_log || []).length === 0 && <p style={{ fontSize: 14, color: 'var(--text-2)' }}>(nothing yet)</p>}
           <ol className="checklist-log-list">
             {(function () {
