@@ -21,6 +21,16 @@ function humanFieldLabel(key) {
 function displayDocLabel(label) {
   return String(label || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
 }
+function modelDisplayName(id) {
+  if (id === 'muse-spark-1.3') return 'Meta Muse Spark 1.3';
+  if (String(id).indexOf('muse-spark-open') >= 0) return 'Meta Muse Spark Open';
+  return String(id);
+}
+function modelNote(message) {
+  const m = /\| model=([^|]+) \| ([\d.]+)s/.exec(String(message || ''));
+  if (!m) return '';
+  return ' · ' + modelDisplayName(m[1].trim()) + ' · ' + m[2] + ' s';
+}
 function formatFileSize(bytes) {
   const n = Number(bytes) || 0;
   if (n < 1024) return n + ' B';
@@ -591,7 +601,7 @@ export default function SetClient() {
     else if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) base = 'Reading \u00b7 ' + label;
     else if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
       const num = (m.match(/\d+/) || [])[0];
-      base = num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label;
+      base = (num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label) + modelNote(w.message);
     } else if (t === 'check_finished' || t.includes('check')) {
       const counts = parseCheckCounts(m);
       if (counts) {
@@ -780,7 +790,7 @@ export default function SetClient() {
                         const uploadControls = (
                           <>
                             <div className="upload-row">
-                              <label className="upload-btn">+ photo<input type="file" hidden id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" aria-label={'Upload ' + displayDocLabel(row.label)} onChange={handleFilePick(row.doc_type)} /></label>
+                              <label className="upload-btn">+ photo<input type="file" hidden id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} accept="image/jpeg,image/png,application/pdf" capture="environment" aria-label={'Upload ' + displayDocLabel(row.label)} onChange={handleFilePick(row.doc_type)} /></label>
                               <button className={"upload-btn" + (hasFile ? " upload-btn--primary" : "")} disabled={!hasFile || busy === row.doc_type} onClick={function () { upload(row.doc_type); }}>{busy === row.doc_type ? 'Uploading…' : 'Upload'}</button>
                             </div>
                             {preview && (
