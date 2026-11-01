@@ -1,5 +1,6 @@
 import HeroScan from "./components/HeroScan.js";
 import HowItWorks from "./components/HowItWorks.js";
+import WhySuri from "./components/WhySuri.js";
 import "./landing-polish.css";
 import { listProcesses } from "../lib/processes/index.js";
 
@@ -20,18 +21,6 @@ const FIELD_GRID = Array.from({ length: 179 }, (_, i) => ({
   kind: i < 171 ? "right" : "asked",
   wave: (i % 20) + Math.floor(i / 20),
 }));
-// Why not just OCR: numbers from docs/SCORECARD.md (25 sample documents).
-const WHY_ROWS = [
-  ["What you get", "A block of raw text", "Labeled fields: name, birth date, address, amounts"],
-  ["Phone photos (35 sample fields)", "9 read right (26%)", "35 read right (100%)"],
-  ["All 179 sample fields", "135 read right (75.4%)", "171 read right (95.5%), 0 wrong values"],
-  ["When it can't read a photo", "Returns text anyway, right or wrong", "Asks for a retake and says what's wrong"],
-  ["Wrong document in the slot", "Reads it anyway", "Says what the photo looks like instead"],
-  ["Compares your papers", "Not its job", "Names, dates and amounts across papers, checked by code"],
-  ["Filipino names", "Not its job", "Knows Ma., Sto./Sta., dela Cruz, middle initials. Asks when unsure"],
-  ["Office rules", "None", "Built from plain words, confirmed by a person"],
-];
-
 // Phone photos: 35 fields. Suri 35 right, plain OCR 9 right.
 const PHONE_TICKS = Array.from({ length: 35 }, (_, i) => i);
 
@@ -219,66 +208,7 @@ export default function Home() {
                 </a>
               </div>
               <p className="why-intro">OCR copies the text on a page. Suri understands what the page is, checks it, and tells you what to do next.</p>
-              <div className="why-demo" tabIndex={0}>
-                <div className="why-demo-head">
-                  <span>SAME PHONE PHOTO · TWO RESULTS</span>
-                  <span className="why-demo-tag">ILLUSTRATION · SAMPLE VOTER ID</span>
-                </div>
-                <div className="why-demo-grid">
-                  <div className="why-card why-card--ocr">
-                    <span className="why-card-label">PLAIN OCR</span>
-                    <pre className="why-ocr-text">
-                      LINAWAN V<mark>0</mark>TER <mark>1</mark>D{"\n"}
-                      NAME Ma Theresa S<mark>,</mark> Reyes{"\n"}
-                      B<mark>0</mark>RN 2<mark>OO</mark>7-<mark>O</mark>3-<mark>l</mark>4{"\n"}
-                      SEX Fema<mark>1</mark>e{"\n"}
-                      CITY Lin<mark>aw an</mark>{"\n"}
-                      ID N<mark>0</mark> LWN-V<mark>0</mark>T-<mark>OO</mark>4827
-                    </pre>
-                    <p className="why-card-foot">Text only. You still read it, find each field, and check it yourself.</p>
-                  </div>
-                  <div className="why-card why-card--suri">
-                    <span className="why-card-label">SURI</span>
-                    <div className="why-fields">
-                      <div className="why-field">
-                        <span className="why-field-key">FULL NAME</span>
-                        <span className="why-field-val">Ma. Theresa S. Reyes</span>
-                        <span className="why-tag why-tag--ask">▪ ASKS: SAME AS MARIA?</span>
-                      </div>
-                      <div className="why-field">
-                        <span className="why-field-key">BIRTH DATE</span>
-                        <span className="why-field-val">2007-03-14</span>
-                        <span className="why-tag">✓ MATCHES BIRTH CERT</span>
-                      </div>
-                      <div className="why-field">
-                        <span className="why-field-key">CITY</span>
-                        <span className="why-field-val">Linawan</span>
-                        <span className="why-tag">✓ OFFICE RULE PASSED</span>
-                      </div>
-                      <div className="why-field">
-                        <span className="why-field-key">ID NUMBER</span>
-                        <span className="why-field-val">LWN-VOT-004827</span>
-                        <span className="why-tag">✓ READ</span>
-                      </div>
-                    </div>
-                    <p className="why-card-foot why-card-foot--suri">Fields, already checked. You answer one question.</p>
-                  </div>
-                </div>
-              </div>
-              <div className="why-table" role="table" aria-label="Plain OCR compared with Suri">
-                <div className="why-row why-row--head" role="row">
-                  <span role="columnheader" />
-                  <span role="columnheader" className="why-col-ocr">PLAIN OCR</span>
-                  <span role="columnheader" className="why-col-suri">SURI</span>
-                </div>
-                {WHY_ROWS.map(([label, ocr, suri]) => (
-                  <div key={label} className="why-row" role="row" tabIndex={0}>
-                    <span role="rowheader" className="why-label">{label}</span>
-                    <span role="cell" className="why-ocr">{ocr}</span>
-                    <span role="cell" className="why-suri">{suri}</span>
-                  </div>
-                ))}
-              </div>
+              <WhySuri />
             </section>
 
             <section id="privacy" className="landing-section">
