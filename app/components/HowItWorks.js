@@ -76,12 +76,21 @@ const STEPS = [
 
 export default function HowItWorks() {
   const [active, setActive] = useState(0);
-  const [open, setOpen] = useState(-1);
+  // Which sections are open, per step. Stays until the user closes it.
+  const [openMap, setOpenMap] = useState({});
   const step = STEPS[active];
+  const openHere = openMap[active] || [];
+
+  function toggle(j) {
+    setOpenMap((m) => {
+      const cur = m[active] || [];
+      const next = cur.includes(j) ? cur.filter((x) => x !== j) : [...cur, j];
+      return { ...m, [active]: next };
+    });
+  }
 
   function pick(i) {
     setActive(i);
-    setOpen(-1);
   }
 
   function onKey(e, i) {
@@ -130,7 +139,7 @@ export default function HowItWorks() {
 
         <div className="hiw-acc">
           {step.parts.map((part, j) => {
-            const isOpen = open === j;
+            const isOpen = openHere.includes(j);
             return (
               <div key={part.title} className={`hiw-acc-item${isOpen ? " is-open" : ""}`}>
                 <button
@@ -138,16 +147,20 @@ export default function HowItWorks() {
                   className="hiw-acc-head"
                   aria-expanded={isOpen}
                   aria-controls={`hiw-acc-${j}`}
-                  onClick={() => setOpen(isOpen ? -1 : j)}
+                  onClick={() => toggle(j)}
                 >
                   <span>{part.title}</span>
                   <span className="hiw-chevron" aria-hidden="true" />
                 </button>
-                <ul id={`hiw-acc-${j}`} className="hiw-acc-body" hidden={!isOpen}>
-                  {part.points.map((pt) => (
-                    <li key={pt}>{pt}</li>
-                  ))}
-                </ul>
+                <div id={`hiw-acc-${j}`} className="hiw-acc-wrap" aria-hidden={!isOpen}>
+                  <div className="hiw-acc-inner">
+                    <ul className="hiw-acc-body">
+                      {part.points.map((pt) => (
+                        <li key={pt}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             );
           })}
