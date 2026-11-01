@@ -43,3 +43,6 @@ scripts/.eval-cache.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Tesseract cache written by the eval script
+/eng.traineddata
