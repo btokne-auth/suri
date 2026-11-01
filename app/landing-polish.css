@@ -1,0 +1,124 @@
+/* =========================================================
+   Suri — landing polish v2 (hand-written, do not edit by AI)
+   1) stats: comparison bars, always-visible detail, hover = top line
+   2) how it works: outline with square markers on a thin line
+   ========================================================= */
+
+/* ---------- 1) Stats ---------- */
+.landing-stat {
+  position: relative;
+  outline: none;
+}
+.landing-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+.landing-stat--match::before { background: var(--match); }
+.landing-stat:hover::before,
+.landing-stat:focus-visible::before { transform: scaleX(1); }
+
+.landing-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  max-width: 220px;
+}
+.landing-bar {
+  display: grid;
+  grid-template-columns: 34px 1fr 32px;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+}
+.landing-bar-name { text-transform: uppercase; }
+.landing-bar-num { text-align: right; color: var(--text-2); }
+.landing-bar-track {
+  position: relative;
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.landing-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 2px;
+  transform-origin: left;
+  animation: landing-bar-in 0.9s cubic-bezier(.2,.7,.2,1) both;
+}
+.landing-bar--ocr .landing-bar-fill {
+  background: var(--text-3);
+  animation-delay: 0.15s;
+}
+.landing-bar--ocr,
+.landing-bar--ocr .landing-bar-num { color: var(--text-3); }
+@keyframes landing-bar-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.landing-stat-detail {
+  display: block;
+  margin-top: 12px;
+  max-width: 230px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-3);
+  transition: color 0.2s ease;
+}
+.landing-stat:hover .landing-stat-detail,
+.landing-stat:focus-visible .landing-stat-detail { color: var(--text-2); }
+
+/* ---------- 2) How it works: exam-outline style ---------- */
+.landing-how-list {
+  position: relative;
+  padding-left: 22px;
+}
+.landing-how-list::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 22px;
+  bottom: 22px;
+  width: 1px;
+  background: var(--line-strong);
+}
+.landing-how-row { position: relative; }
+.landing-how-row::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -5px;
+  box-sizing: border-box;
+  border: 1px solid var(--text-3);
+  background: var(--bg);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.landing-how-row:first-child::before,
+.landing-how-row:hover::before {
+  background: var(--match);
+  border-color: var(--match);
+}
+.landing-how-row:hover .landing-how-text { color: var(--text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-stat::before,
+  .landing-stat-detail,
+  .landing-how-row::before { transition: none; }
+  .landing-bar-fill { animation: none; }
+}

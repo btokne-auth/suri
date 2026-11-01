@@ -1,4 +1,5 @@
 import HeroScan from "./components/HeroScan.js";
+import "./landing-polish.css";
 import { listProcesses } from "../lib/processes/index.js";
 
 function shortTitle(id, label) {
@@ -86,19 +87,30 @@ export default function Home() {
             </div>
 
             <div id="accuracy" className="landing-stats">
-              <div className="landing-stat">
+              <div className="landing-stat" tabIndex={0}>
                 <span className="landing-stat-value">95.5%</span>
                 <span className="landing-stat-label">FIELDS READ RIGHT</span>
+                <span className="landing-bars" aria-hidden="true">
+                  <span className="landing-bar"><span className="landing-bar-name">Suri</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "95.5%" }} /></span><span className="landing-bar-num">95.5</span></span>
+                  <span className="landing-bar landing-bar--ocr"><span className="landing-bar-name">OCR</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "75.4%" }} /></span><span className="landing-bar-num">75.4</span></span>
+                </span>
+                <span className="landing-stat-detail">171 of 179 fields · 25 sample documents</span>
               </div>
-              <div className="landing-stat">
+              <div className="landing-stat landing-stat--match" tabIndex={0}>
                 <span className="landing-stat-value">0</span>
                 <span className="landing-stat-label">WRONG VALUES</span>
+                <span className="landing-stat-detail">Never invented a value across 179 fields. When unsure, it asked.</span>
               </div>
-              <div className="landing-stat">
+              <div className="landing-stat" tabIndex={0}>
                 <span className="landing-stat-value">
                   100% <span className="landing-stat-vs">vs 26%</span>
                 </span>
                 <span className="landing-stat-label">PHONE PHOTOS VS PLAIN OCR</span>
+                <span className="landing-bars" aria-hidden="true">
+                  <span className="landing-bar"><span className="landing-bar-name">Suri</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "100%" }} /></span><span className="landing-bar-num">100</span></span>
+                  <span className="landing-bar landing-bar--ocr"><span className="landing-bar-name">OCR</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "26%" }} /></span><span className="landing-bar-num">26</span></span>
+                </span>
+                <span className="landing-stat-detail">35 of 35 phone-photo fields vs 9 of 35</span>
               </div>
             </div>
 
