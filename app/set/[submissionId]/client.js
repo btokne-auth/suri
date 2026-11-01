@@ -183,7 +183,8 @@ export default function SetClient() {
         if (files.current[t]) try { files.current[t].value = ''; } catch {}
         let docLabelUpload = t;
         try { const rowUp = (data && data.rows) ? data.rows.find(function (rw) { return rw && rw.doc_type === t; }) : null; if (rowUp && rowUp.label) docLabelUpload = rowUp.label; } catch {}
-        setDocFeedback(function (p) { return Object.assign({}, p, { [t]: { text: '✓ ' + docLabelUpload + ' uploaded.', ts: Date.now() } }); });
+        setDocFeedback(function (p) { return Object.assign({}, p, { [t]: { text: '✓ ' + displayDocLabel(docLabelUpload) + ' uploaded.', ts: Date.now() } }); });
+        setReplaceOpen(function (p) { return Object.assign({}, p, { [t]: false }); });
         load(sid);
       } else {
         setUploadErrors(function (p) { return Object.assign({}, p, { [t]: 'Upload failed: ' + (j.error || r.status) }); });
@@ -254,6 +255,20 @@ export default function SetClient() {
         setClarAnswers((p) => ({ ...p, [clarId]: '' }));
         setClarErrors((p) => ({ ...p, [clarId]: '' }));
         setDocFeedback(function (p) { return Object.assign({}, p, { [clarId]: { text: '✓ Answered. A person will decide.', ts: Date.now() } }); });
+        setData(function (prev) {
+          if (!prev || !Array.isArray(prev.rows)) return prev;
+          const nextRows = prev.rows.map(function (row) {
+            if (!row || !Array.isArray(row.clarifications)) return row;
+            let found = false;
+            const nextClars = row.clarifications.map(function (cl) {
+              if (cl && cl.id === clarId) { found = true; return Object.assign({}, cl, { answer: raw, status: 'answered' }); }
+              return cl;
+            });
+            if (!found) return row;
+            return Object.assign({}, row, { clarifications: nextClars, action: 'answered, a person will decide', reason: 'You answered. A person will decide.' });
+          });
+          return Object.assign({}, prev, { rows: nextRows });
+        });
         load(sid);
       }
     } catch {
@@ -460,7 +475,7 @@ export default function SetClient() {
                   <span className="checklist-ask-label mono">SURI ASKS</span>
                   <p className="checklist-ask-q">{cl.question}</p>
                   <label style={{ display: 'block', maxWidth: '100%' }}>
-                    <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Your answer (max 200):</span>
+                    <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Your answer</span>
                     <input value={clarAnswers[cl.id] || ''} onChange={function (e) { setClarAnswers(function (p) { return { ...p, [cl.id]: e.target.value }; }); }} maxLength={200} placeholder="Short answer, e.g. Ma. is short for Maria on my ID" className="checklist-ask-input" />
                   </label>
                   {clarErrors[cl.id] && <p style={{ color: 'var(--mismatch)', fontSize: 14, marginTop: 6, overflowWrap: 'break-word' }}>{clarErrors[cl.id]}</p>}
@@ -742,7 +757,7 @@ export default function SetClient() {
                 <div className="checklist-row-main">
                   <span className="checklist-docid mono">DOC-0{idx + 1}</span>
                   <span className="checklist-docname">{displayDocLabel(row.label)}</span>
-                  <span className="checklist-sentence">{displayDocLabel(row.reason)}</span>
+                  <span className="checklist-sentence">{String(row.reason || '').replace(/\s*\((?:[^)]*\bstyle|sample[^)]*)\)/gi, '')}</span>
                   {isReading ? (
                     <>
                       <div className="checklist-skeleton" aria-hidden="true">
