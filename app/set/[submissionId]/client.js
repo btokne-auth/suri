@@ -18,6 +18,19 @@ function fieldLabelFallback(key) {
 function humanFieldLabel(key) {
   return fieldLabelFallback(key);
 }
+function displayDocLabel(label) {
+  return String(label || '').replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+function modelDisplayName(id) {
+  if (id === 'muse-spark-1.3') return 'Meta Muse Spark 1.3';
+  if (String(id).indexOf('muse-spark-open') >= 0) return 'Meta Muse Spark Open';
+  return String(id);
+}
+function modelNote(message) {
+  const m = /\| model=([^|]+) \| ([\d.]+)s/.exec(String(message || ''));
+  if (!m) return '';
+  return ' · ' + modelDisplayName(m[1].trim()) + ' · ' + m[2] + ' s';
+}
 function formatFileSize(bytes) {
   const n = Number(bytes) || 0;
   if (n < 1024) return n + ' B';
@@ -48,6 +61,7 @@ export default function SetClient() {
   const [msg, setMsg] = useState('Loading...');
   const [busy, setBusy] = useState(null);
   const [view, setView] = useState('applicant');
+  const [docFeedback, setDocFeedback] = useState({});
   const [imgUrls, setImgUrls] = useState({});
   const [correcting, setCorrecting] = useState({});
   const [newValues, setNewValues] = useState({});
@@ -167,6 +181,10 @@ export default function SetClient() {
         if (cur && cur.url) try { URL.revokeObjectURL(cur.url); } catch {}
         setSelectedPreviews(function (p) { const n = Object.assign({}, p); delete n[t]; return n; });
         if (files.current[t]) try { files.current[t].value = ''; } catch {}
+        let docLabelUpload = t;
+        try { const rowUp = (data && data.rows) ? data.rows.find(function (rw) { return rw && rw.doc_type === t; }) : null; if (rowUp && rowUp.label) docLabelUpload = rowUp.label; } catch {}
+        setDocFeedback(function (p) { return Object.assign({}, p, { [t]: { text: '✓ ' + displayDocLabel(docLabelUpload) + ' uploaded.', ts: Date.now() } }); });
+        setReplaceOpen(function (p) { return Object.assign({}, p, { [t]: false }); });
         load(sid);
       } else {
         setUploadErrors(function (p) { return Object.assign({}, p, { [t]: 'Upload failed: ' + (j.error || r.status) }); });
@@ -186,7 +204,7 @@ export default function SetClient() {
   }
   async function reviewAction(docId, action, fieldKey) {
     setReviewBusy(docId + action + (fieldKey || ''));
-    setMsg('');
+    const feedbackKey = action === 'correct' && fieldKey ? docId + ':' + fieldKey : docId;
     try {
       const body = { action };
       if (action === 'correct') {
@@ -195,13 +213,20 @@ export default function SetClient() {
       }
       const r = await fetch('/api/documents/' + encodeURIComponent(docId) + '/review', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       const j = await r.json();
-      if (!r.ok) { setMsg('Reviewer action failed: ' + (j.error || r.status)); }
+      if (!r.ok) { setDocFeedback(function (p) { return Object.assign({}, p, { [feedbackKey]: { text: 'Reviewer action failed: ' + (j.error || r.status), ts: Date.now() } }); }); }
       else {
-        setMsg(action === 'correct' ? 'Saved. Checks re-ran.' : 'Saved.');
+        let docLabel = 'Document';
+        try { const rr = (data && data.rows) ? data.rows.find(function(rw){return rw && rw.document_id===docId;}) : null; if (rr && rr.label) docLabel = displayDocLabel(rr.label); } catch {}
+        let msgText = '';
+        if (action === 'approve') msgText = '✓ ' + docLabel + ' approved.';
+        else if (action === 'reject') msgText = '✓ ' + docLabel + ' rejected.';
+        else if (action === 'correct') { let fl = fieldKey ? humanFieldLabel(fieldKey) : 'Field'; msgText = '✓ ' + fl + ' corrected.'; }
+        else msgText = '✓ Saved.';
+        setDocFeedback(function (p) { return Object.assign({}, p, { [feedbackKey]: { text: msgText, ts: Date.now() } }); });
         setCorrecting((p) => ({ ...p, [docId + ':' + fieldKey]: false }));
         load(sid);
       }
-    } catch { setMsg('Reviewer action failed. Try again.'); }
+    } catch { setDocFeedback(function (p) { return Object.assign({}, p, { [feedbackKey]: { text: 'Reviewer action failed. Try again.', ts: Date.now() } }); }); }
     setReviewBusy(null);
   }
   async function sendOverride() {
@@ -229,7 +254,21 @@ export default function SetClient() {
         setClarSuccess((p) => ({ ...p, [clarId]: true }));
         setClarAnswers((p) => ({ ...p, [clarId]: '' }));
         setClarErrors((p) => ({ ...p, [clarId]: '' }));
-        setMsg('Answered. A person will decide.');
+        setDocFeedback(function (p) { return Object.assign({}, p, { [clarId]: { text: '✓ Answered. A person will decide.', ts: Date.now() } }); });
+        setData(function (prev) {
+          if (!prev || !Array.isArray(prev.rows)) return prev;
+          const nextRows = prev.rows.map(function (row) {
+            if (!row || !Array.isArray(row.clarifications)) return row;
+            let found = false;
+            const nextClars = row.clarifications.map(function (cl) {
+              if (cl && cl.id === clarId) { found = true; return Object.assign({}, cl, { answer: raw, status: 'answered' }); }
+              return cl;
+            });
+            if (!found) return row;
+            return Object.assign({}, row, { clarifications: nextClars, action: 'answered, a person will decide', reason: 'You answered. A person will decide.' });
+          });
+          return Object.assign({}, prev, { rows: nextRows });
+        });
         load(sid);
       }
     } catch {
@@ -376,7 +415,7 @@ export default function SetClient() {
   }
   const stillReading = (data.rows || []).some((row) => row && (row.status === 'uploaded' || row.status === 'reading'));
   const isUploadMsg = msg && (msg.indexOf('Uploaded. Reading') === 0 || msg.indexOf('Uploading') === 0 || msg.indexOf('Upload ') === 0 || msg.indexOf('Choose a file') === 0);
-  const showMsg = msg && msg !== 'Loading...' && !isUploadMsg && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading);
+  const showMsg = msg && msg !== 'Loading...' && !isUploadMsg && !(msg === 'Uploaded. Reading takes ~30s.' && !stillReading) && msg !== data.process.override_note && msg !== 'Overridden. A person decides.';
   // Each check says what it compared against: "same as your profile" or
   // "same as {label}". Same-document checks (sum_equals plus the fixed
   // rule/value rules contains, equals, within_months, not_future) compare
@@ -399,10 +438,10 @@ export default function SetClient() {
     return false;
   }
   function comparedLabelText(c) {
-    if (c && c.compared_label) return c.compared_label;
+    if (c && c.compared_label) return displayDocLabel(c.compared_label);
     if (!c || !c.compared_document_id) return 'your profile';
     const t = docTypeById[c.compared_document_id];
-    return (t && labelByType[t]) || 'the other document';
+    return displayDocLabel((t && labelByType[t]) || 'the other document');
   }
   // Rows saved earlier may end with a baked-in "— same as ...": strip it so
   // the line never says it twice.
@@ -436,12 +475,12 @@ export default function SetClient() {
                   <span className="checklist-ask-label mono">SURI ASKS</span>
                   <p className="checklist-ask-q">{cl.question}</p>
                   <label style={{ display: 'block', maxWidth: '100%' }}>
-                    <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Your answer (max 200):</span>
+                    <span style={{ fontSize: 14, color: 'var(--text-2)' }}>Your answer</span>
                     <input value={clarAnswers[cl.id] || ''} onChange={function (e) { setClarAnswers(function (p) { return { ...p, [cl.id]: e.target.value }; }); }} maxLength={200} placeholder="Short answer, e.g. Ma. is short for Maria on my ID" className="checklist-ask-input" />
                   </label>
                   {clarErrors[cl.id] && <p style={{ color: 'var(--mismatch)', fontSize: 14, marginTop: 6, overflowWrap: 'break-word' }}>{clarErrors[cl.id]}</p>}
-                  {clarSuccess[cl.id] && <p className="checklist-ask-q" style={{ color: 'var(--check)', fontSize: 13 }}>Answered. A person will decide.</p>}
                   <div className="checklist-ask-actions"><button type="button" onClick={function () { sendClarAnswer(cl.id); }} disabled={!!clarBusy[cl.id]} className="checklist-btn-primary">{clarBusy[cl.id] ? 'Sending...' : 'Send answer'}</button></div>
+                  {docFeedback[cl.id] && (<p key={docFeedback[cl.id].ts} className="doc-feedback">{docFeedback[cl.id].text}</p>)}
                 </div>
               );
             })}
@@ -493,16 +532,35 @@ export default function SetClient() {
   function isReadRow(r) {
     return !!(r && r.document_id && r.status !== 'uploaded' && r.status !== 'reading');
   }
+  function formatManilaTime(iso) {
+    try {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true });
+    } catch { return ''; }
+  }
+  function plainReason(reason) {
+    const s = String(reason || '');
+    return displayDocLabel(s.replace(' (form 138 style)', '')) || s;
+  }
+  function reviewerDecisionText(docId, reviews) {
+    const list = (reviews || []).filter(function (r) { return r && r.document_id === docId && (r.action === 'approve' || r.action === 'reject'); });
+    if (!list.length) return null;
+    const last = list[list.length - 1];
+    const t = formatManilaTime(last.created_at);
+    if (last.action === 'approve') return 'Approved by a reviewer' + (t ? ' · ' + t : '');
+    return 'Rejected by a reviewer' + (t ? ' · ' + t : '');
+  }
   function docLabelForLog(w) {
     if (!w) return 'your document';
     const raw = String((w.message || '') + ' ' + (w.step_type || '')).toLowerCase();
     for (const rr of (data.rows || [])) {
-      if (rr && rr.doc_type && raw.includes(rr.doc_type)) return rr.label || rr.doc_type.replace(/_/g, ' ');
+      if (rr && rr.doc_type && raw.includes(rr.doc_type)) return displayDocLabel(rr.label) || rr.doc_type.replace(/_/g, ' ');
     }
     for (const rr of (data.rows || [])) {
       if (rr && rr.label) {
         const ll = String(rr.label).toLowerCase();
-        if (ll && raw.includes(ll.toLowerCase().slice(0, 8))) return rr.label;
+        if (ll && raw.includes(ll.toLowerCase().slice(0, 8))) return displayDocLabel(rr.label);
       }
     }
     if (data && data.process && data.process.label) return data.process.label;
@@ -538,41 +596,43 @@ export default function SetClient() {
     return { match: match ?? 0, confirm: confirm ?? 0, mismatch: mismatch ?? 0 };
   }
   function workLogSentence(w) {
-    if (!w) return 'Suri updated your checklist.';
+    if (!w) return 'Suri · Suri updated your checklist.';
     const t = String(w.step_type || '').toLowerCase();
     const label = docLabelForLog(w);
     const m = String(w.message || '');
-    if (t === 'upload' || t.includes('upload')) return 'Received \u00b7 ' + label;
-    if (t === 'reading_retry' || t.includes('reading_retry')) return 'Reading again to double-check \u00b7 ' + label;
-    if (t === 'retake_needed' || t === 'retake') return 'Asked for a clearer photo \u00b7 ' + label;
-    if (t === 'wrong_document') return 'Looks like a different document \u00b7 ' + label;
-    if (t === 'reading_failed') return 'Couldn\'t finish reading \u00b7 ' + label;
-    if (t === 'requirement_check') return m || 'Suri updated your checklist.';
-    if (t === 'requirement_override') return 'A reviewer overrode the requirement';
-    if (t === 'check_failed') return 'A check couldn\'t run';
-    if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) return 'Suri skipped a question';
-    if (t === 'review_approve' || t.includes('review_approve')) return 'A reviewer approved \u00b7 ' + label;
-    if (t === 'review_reject' || t.includes('review_reject')) return 'A reviewer rejected \u00b7 ' + label;
-    if (t === 'review_correct' || t.includes('review_correct')) return 'A reviewer corrected \u00b7 ' + label;
-    if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) return 'Reading \u00b7 ' + label;
-    if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
+    let base = '';
+    if (t === 'upload' || t.includes('upload')) base = 'Received \u00b7 ' + label;
+    else if (t === 'reading_retry' || t.includes('reading_retry')) base = 'Reading again to double-check \u00b7 ' + label;
+    else if (t === 'retake_needed' || t === 'retake') base = 'Asked for a clearer photo \u00b7 ' + label;
+    else if (t === 'wrong_document') base = 'Looks like a different document \u00b7 ' + label;
+    else if (t === 'reading_failed') base = 'Couldn\'t finish reading \u00b7 ' + label;
+    else if (t === 'requirement_check') base = m || 'Suri updated your checklist.';
+    else if (t === 'requirement_override') base = 'A reviewer overrode the requirement';
+    else if (t === 'check_failed') base = 'A check couldn\'t run';
+    else if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) base = 'Suri skipped a question';
+    else if (t === 'review_approve' || t.includes('review_approve')) base = 'A reviewer approved \u00b7 ' + label;
+    else if (t === 'review_reject' || t.includes('review_reject')) base = 'A reviewer rejected \u00b7 ' + label;
+    else if (t === 'review_correct' || t.includes('review_correct')) base = 'A reviewer corrected \u00b7 ' + label;
+    else if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) base = 'Reading \u00b7 ' + label;
+    else if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
       const num = (m.match(/\d+/) || [])[0];
-      return num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label;
-    }
-    if (t === 'check_finished' || t.includes('check')) {
+      base = (num ? 'Read ' + num + ' fields \u00b7 ' + label : 'Read \u00b7 ' + label) + modelNote(w.message);
+    } else if (t === 'check_finished' || t.includes('check')) {
       const counts = parseCheckCounts(m);
       if (counts) {
         let s = 'Checked \u00b7 ' + counts.match + ' match';
         if (counts.confirm > 0) s += ' \u00b7 ' + counts.confirm + ' to confirm';
         if (counts.mismatch > 0) s += ' \u00b7 ' + counts.mismatch + ' to fix';
-        return s;
-      }
-      return 'Checked \u00b7 ' + label;
-    }
-    if (t.includes('clarification_asked') || t.includes('asked')) return 'Asked \u00b7 ' + label;
-    if (t.includes('clarification_answered') || t.includes('answered')) return 'Answered \u00b7 ' + label;
-    if (t.includes('review')) return 'Reviewed \u00b7 ' + label;
-    return 'Suri updated your checklist.';
+        base = s;
+      } else base = 'Checked \u00b7 ' + label;
+    } else if (t.includes('clarification_asked') || t.includes('asked')) base = 'Asked \u00b7 ' + label;
+    else if (t.includes('clarification_answered') || t.includes('answered')) base = 'Answered \u00b7 ' + label;
+    else if (t.includes('review')) base = 'Reviewed \u00b7 ' + label;
+    else base = 'Suri updated your checklist.';
+    let prefix = 'Suri \u00b7 ';
+    if (t === 'review_approve' || t === 'review_reject' || t === 'review_correct' || t === 'requirement_override' || t.includes('review_approve') || t.includes('review_reject') || t.includes('review_correct') || t.includes('requirement_override')) prefix = 'Reviewer \u00b7 ';
+    else if (t === 'clarification_answered' || t.includes('clarification_answered')) prefix = view === 'reviewer' ? 'Applicant \u00b7 ' : 'You \u00b7 ';
+    return prefix + base;
   }
   function formatLogTime(iso) {
     try {
@@ -664,13 +724,13 @@ export default function SetClient() {
       </div>
       {showMsg && (<p className="checklist-msg"><b>{msg}</b></p>)}
       {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p className="checklist-msg"><b>{data.process.requirement_message}</b> A person still decides.</p>)}
-      {data.process.override_note && (<p className="checklist-msg"><b>Overridden by reviewer:</b> {data.process.override_note} A person decides.</p>)}
+      {data.process.override_note && (<p className="checklist-msg checklist-msg--override"><b>Overridden:</b> {data.process.override_note}</p>)}
       {view === 'reviewer' && data.submission.status === 'requirement_not_met' && (
-        <div style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+        <div className="reviewer-override">
           <h3>Requirement override</h3>
           <p>A flag, a person decides. Add a short note to unlock the other documents.</p>
-          <label>Note: <input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} maxLength={200} style={{ display: 'block', width: '100%', padding: 12, minHeight: 44, fontSize: 16, marginTop: 4 }} /></label>
-          <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override'} style={SMALLBTN}>{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
+          <label>Note: <input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} maxLength={200} /></label>
+          <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override'} className="reviewer-btn-approve">{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
         </div>
       )}
       <div key={view} className="checklist-view">
@@ -696,8 +756,8 @@ export default function SetClient() {
                 <span className="checklist-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
                 <div className="checklist-row-main">
                   <span className="checklist-docid mono">DOC-0{idx + 1}</span>
-                  <span className="checklist-docname">{row.label}</span>
-                  <span className="checklist-sentence">{row.reason}</span>
+                  <span className="checklist-docname">{displayDocLabel(row.label)}</span>
+                  <span className="checklist-sentence">{String(row.reason || '').replace(/\s*\((?:[^)]*\bstyle|sample[^)]*)\)/gi, '')}</span>
                   {isReading ? (
                     <>
                       <div className="checklist-skeleton" aria-hidden="true">
@@ -743,11 +803,10 @@ export default function SetClient() {
                         const preview = selectedPreviews[row.doc_type] || null;
                         const hasFile = !!preview;
                         const uploadControls = (
-                          <div className="checklist-upload-wrap">
-                            <div className="checklist-upload">
-                              <label className="checklist-upload-btn" htmlFor={'file-' + row.doc_type}>+ photo</label>
-                              <input id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} type="file" accept="image/jpeg,image/png,application/pdf" capture="environment" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0,0,0,0)' }} aria-label={'Upload ' + row.label} onChange={handleFilePick(row.doc_type)} />
-                              <button type="button" onClick={function () { upload(row.doc_type); }} disabled={busy === row.doc_type || !hasFile} className={hasFile ? 'checklist-btn-primary' : 'checklist-btn-secondary'} style={{ minHeight: 36, fontSize: 12, opacity: (!hasFile && busy !== row.doc_type) ? 0.45 : 1 }} aria-disabled={busy === row.doc_type || !hasFile}>{busy === row.doc_type ? 'Uploading…' : 'Upload'}</button>
+                          <>
+                            <div className="upload-row">
+                              <label className="upload-btn">+ photo<input type="file" hidden id={'file-' + row.doc_type} ref={function (el) { files.current[row.doc_type] = el; }} accept="image/jpeg,image/png,application/pdf" capture="environment" aria-label={'Upload ' + displayDocLabel(row.label)} onChange={handleFilePick(row.doc_type)} /></label>
+                              <button className={"upload-btn" + (hasFile ? " upload-btn--primary" : "")} disabled={!hasFile || busy === row.doc_type} onClick={function () { upload(row.doc_type); }}>{busy === row.doc_type ? 'Uploading…' : 'Upload'}</button>
                             </div>
                             {preview && (
                               <div className="checklist-file-preview">
@@ -758,7 +817,7 @@ export default function SetClient() {
                             )}
                             {busy === row.doc_type && (<p className="checklist-upload-status mono">Uploading…</p>)}
                             {uploadErrors[row.doc_type] && (<p className="checklist-upload-error">{uploadErrors[row.doc_type]}</p>)}
-                          </div>
+                          </>
                         );
                         if (needsDirect) return uploadControls;
                         if (!isOpen) {
@@ -766,6 +825,7 @@ export default function SetClient() {
                         }
                         return (<div><div className="checklist-upload-replace"><button type="button" className="checklist-replace-btn" onClick={function () { setReplaceOpen(function (p) { return Object.assign({}, p, { [repKey]: false }); }); }}>cancel</button></div>{uploadControls}</div>);
                       })()}
+                      {docFeedback[row.doc_type] && (<p key={docFeedback[row.doc_type].ts} className="doc-feedback">{docFeedback[row.doc_type].text}</p>)}
                       {renderApplicantClarifications(row)}
                     </>
                   )}
@@ -780,99 +840,147 @@ export default function SetClient() {
         )}
         {view === 'reviewer' && (
         <section className="set-docs">
-          <h2>Reviewer</h2>
-          {(data.rows || []).map((row) => {
+          <div className="reviewer-header">
+            <p className="reviewer-header-subtitle">Review each document and decide.</p>
+            {data.submission.status === 'requirement_not_met' && (<span className="reviewer-header-badge">● needs a decision</span>)}
+          </div>
+          {(data.rows || []).map(function (row, idx) {
             const docFields = row.document_id ? (fieldsMap[row.document_id] || []) : [];
             const docChecks = row.document_id ? checksAll.filter((c) => c.document_id === row.document_id) : [];
             const docReviews = row.document_id ? reviewsAll.filter((r) => r.document_id === row.document_id) : [];
             return (
-            <div key={row.doc_type} style={{ border: '1px solid #888', borderRadius: 8, padding: 12, marginBottom: 12 }}>
-              <h3>{row.label}</h3>
-              <p>Status: <b>{row.status}</b>{row.locked ? ' (locked)' : ''}</p>
-              <p>Action: <b>{row.action}</b> — {row.reason}</p>
-              {!row.document_id && <p>(not uploaded yet)</p>}
+            <div key={row.doc_type} className="reviewer-card">
+              {function () {
+                const docChecks = row.document_id ? checksFor(row.document_id) : [];
+                const tag = getTag(row, docChecks);
+                const tagMap = { 'checklist-tag-upload': 'reviewer-tag-upload', 'checklist-tag-reading': 'reviewer-tag-reading', 'checklist-tag-ready': 'reviewer-tag-ready', 'checklist-tag-confirm': 'reviewer-tag-confirm', 'checklist-tag-fix': 'reviewer-tag-fix' };
+                const tagCls = tagMap[tag.cls] || tag.cls;
+                const decision = reviewerDecisionText(row.document_id, reviewsAll);
+                return (
+                  <>
+                    <div className="reviewer-card-header">
+                      <span className="reviewer-card-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
+                      <span className="reviewer-card-docid mono">DOC-0{idx + 1}</span>
+                      <span className="reviewer-card-name">{displayDocLabel(row.label)}</span>
+                      <span className="reviewer-card-sentence">{plainReason(row.reason)}</span>
+                      <span className={'reviewer-card-tag ' + tagCls}>{tag.text}</span>
+                    </div>
+                    {(row.status === 'approved' || row.status === 'rejected') && (function () { const reviews = reviewsAll.filter(function (r) { return r && r.document_id === row.document_id && (r.action === 'approve' || r.action === 'reject'); }); const last = reviews.length ? reviews[reviews.length - 1] : null; const t = last ? formatManilaTime(last.created_at) : ''; const approved = row.status === 'approved'; return (<span className={"rv-decision rv-decision--" + (approved ? "approved" : "rejected")}>{approved ? "✓ Approved by a reviewer" : "✕ Rejected by a reviewer"}{t ? " · " + t : ""}</span>); })()}
+                  </>
+                );
+              }()}
+              {!row.document_id && null}
               {row.document_id && (
-              <div className="review-pair">
+              <>
+              <div className="rv-body">
+                <div className="rv-photo"><a href={imgUrls[row.document_id]} target="_blank" rel="noopener noreferrer"><img src={imgUrls[row.document_id]} alt={displayDocLabel(row.label) + " photo"} /></a><div className="rv-photo-hint">Click to open full size</div></div>
                 <div>
-                  {imgUrls[row.document_id] ? (<img src={imgUrls[row.document_id]} alt={row.label} style={{ width: '100%', height: 'auto', border: '1px solid #888' }} />) : (<button type="button" onClick={() => loadImage(row.document_id)} style={SMALLBTN}>Load image</button>)}
-                </div>
-                <div>
+                  <div className="reviewer-fields">
                   {docFields.length === 0 && <p>(no fields read yet)</p>}
                   {docFields.map((f) => {
                     const fr = docChecks.filter((c) => c.field_key === f.field_key);
                     const ck = row.document_id + ':' + f.field_key;
                     return (
-                    <div key={f.field_key} style={{ borderTop: '1px solid #ccc', paddingTop: 8, marginTop: 8 }}>
-                      <p><b>{f.field_key}</b>: {f.unreadable ? 'unreadable' : (f.value_text ?? '(empty)')} <small>({f.confidence})</small></p>
-                      {fr.length === 0 && <p><small>no checks</small></p>}
-                      {fr.map((c, i) => {
-                        const clar = c.clarification || null;
-                        return (
-                          <div key={i} style={{ maxWidth: '100%', overflowWrap: 'break-word' }}>
-                            <p>{checkLine(c)}</p>
-                            {clar && c.result === 'check' && (
-                              <div style={{ marginTop: 6, padding: 8, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
-                                <p style={{ margin: '4px 0' }}><b>Suri asked:</b> {clar.question}</p>
-                                <p style={{ margin: '4px 0' }}><b>Applicant answered:</b> {clar.answer != null ? clar.answer : 'Not answered yet'}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {correcting[ck] ? (
+                    <div key={f.field_key} className="reviewer-field">
+                      <span className="reviewer-field-label">{humanFieldLabel(f.field_key)}</span>
+                      <span className="reviewer-field-value">{f.unreadable ? '—' : (f.value_text ?? '(empty)')}</span>
+                      <span className="reviewer-field-meta">
+                        <span className={f.confidence === 'low' ? 'reviewer-field-conf reviewer-field-conf--low' : 'reviewer-field-conf'}>{f.confidence || ''}</span>
+                        {!correcting[ck] && (<button type="button" onClick={() => { setCorrecting((p) => ({ ...p, [ck]: true })); setNewValues((p) => ({ ...p, [ck]: f.unreadable ? '' : (f.value_text || '') })); }} className="reviewer-field-correct-btn">Correct</button>)}
+                      </span>
+                      {fr.length > 0 && (<div className="reviewer-field-checks">{fr.map((c, i) => {
+                        const isSelf = isSelfCheck(c);
+                        const suffix = isSelf ? '' : (c.result === 'match' ? ' — same as ' + comparedLabelText(c) : ' — compared with ' + comparedLabelText(c));
+                        const cls = c.result === 'match' ? 'reviewer-checkline reviewer-checkline-match' : (c.result === 'check' ? 'reviewer-checkline reviewer-checkline-check' : 'reviewer-checkline reviewer-checkline-mismatch');
+                        return (<div key={i} className={cls}><b>{c.result === 'match' ? '✓ ' : c.result === 'mismatch' ? '✕ ' : '▪ '}{cleanReason(c.reason)}</b>{suffix}</div>);
+                      })}</div>)}
+                      {correcting[ck] && (
                         <div>
                           <label>New value: <input value={newValues[ck] || ''} onChange={(e) => setNewValues((p) => ({ ...p, [ck]: e.target.value }))} style={{ display: 'block', width: '100%', padding: 10, minHeight: 44, fontSize: 16, marginTop: 4 }} /></label>
                           <button type="button" onClick={() => reviewAction(row.document_id, 'correct', f.field_key)} disabled={reviewBusy === row.document_id + 'correct' + f.field_key} style={SMALLBTN}>Save correction</button>
                           <button type="button" onClick={() => setCorrecting((p) => ({ ...p, [ck]: false }))} style={SMALLBTN}>Cancel</button>
+                          {docFeedback[ck] && (<p key={docFeedback[ck].ts} className="doc-feedback">{docFeedback[ck].text}</p>)}
                         </div>
-                      ) : (
-                        <button type="button" onClick={() => { setCorrecting((p) => ({ ...p, [ck]: true })); setNewValues((p) => ({ ...p, [ck]: f.unreadable ? '' : (f.value_text || '') })); }} style={SMALLBTN}>Correct</button>
                       )}
+                      {docFeedback[ck] && (<p key={docFeedback[ck].ts} className="doc-feedback">{docFeedback[ck].text}</p>)}
                     </div>
                     );
                   })}
-                  <div>
-                    <button type="button" onClick={() => reviewAction(row.document_id, 'approve')} disabled={reviewBusy === row.document_id + 'approve'} style={SMALLBTN}>Approve</button>
-                    <button type="button" onClick={() => reviewAction(row.document_id, 'reject')} disabled={reviewBusy === row.document_id + 'reject'} style={SMALLBTN}>Reject</button>
                   </div>
-                  <div style={{ marginTop: 8 }}>
-                    <button type="button" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} disabled={ocrByDoc[row.document_id]?.status === 'loading'} aria-label="Compare with plain OCR (no AI) — runs in browser" aria-busy={ocrByDoc[row.document_id]?.status === 'loading'} style={Object.assign({}, SMALLBTN, { border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', color: 'var(--foreground)', cursor: 'pointer', borderStyle: 'dashed', width: '100%', maxWidth: '100%', boxSizing: 'border-box', marginRight: 0 })}>Compare with plain OCR</button>
-                    {ocrByDoc[row.document_id]?.status === 'loading' && (<p style={{ margin: '8px 0 0', fontSize: 14 }} aria-live="polite">Reading with plain OCR… {ocrByDoc[row.document_id].progress}%</p>)}
-                    {ocrByDoc[row.document_id]?.status === 'error' && (<p style={{ margin: '8px 0 0', fontSize: 14, color: '#a00', overflowWrap: 'break-word' }}>{ocrByDoc[row.document_id].error}</p>)}
+                </div>
+                </div>
+                  {(row.clarifications || []).filter(function (cl) { return cl && cl.question; }).map(function (cl) {
+                    return (
+                      <div key={cl.id || cl.question} className="reviewer-clarif-card">
+                        <span className="reviewer-clarif-label">SURI ASKED</span>
+                        <p className="reviewer-clarif-q">{cl.question}</p>
+                        {cl.answer ? (<><div className="reviewer-clarif-divider"></div><span className="reviewer-clarif-label">APPLICANT ANSWERED</span><p className="reviewer-clarif-a">{cl.answer}</p></>) : null}
+                      </div>
+                    );
+                  })}
+                  <div className="rv-actions">
+                    <button className="rv-btn rv-btn--approve" onClick={() => reviewAction(row.document_id, 'approve')} disabled={reviewBusy === row.document_id + 'approve'}>✓ Approve</button>
+                    <button className="rv-btn rv-btn--reject" onClick={() => reviewAction(row.document_id, 'reject')} disabled={reviewBusy === row.document_id + 'reject'}>✕ Reject</button>
+                    <button className="rv-btn rv-btn--ghost" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} disabled={ocrByDoc[row.document_id]?.status === 'loading'}>Compare with plain OCR</button>
+                    {docFeedback[row.document_id] && <p className="rv-feedback">{docFeedback[row.document_id].text}</p>}
+                  </div>
+                  {ocrByDoc[row.document_id] && (
+                    <section className="rv-ocr">
+                      <div className="rv-ocr-head"><span className="rv-ocr-title">Plain OCR vs Suri</span><span className="rv-ocr-score">Suri read <b>{(function () { const fieldsForScore = fieldsMap[row.document_id] || []; return fieldsForScore.filter(function (f) { return f && !f.unreadable && f.value_text != null && String(f.value_text).trim() !== ''; }).length; })()}/{(fieldsMap[row.document_id] || []).length}</b> fields · Plain OCR found <b>{ocrByDoc[row.document_id].foundCount != null ? ocrByDoc[row.document_id].foundCount : ((ocrByDoc[row.document_id].perField || []).filter(function (x) { return x.found; }).length)}</b> of those values</span></div>
+                      {ocrByDoc[row.document_id]?.status === 'loading' && (<div className="rv-ocr-loading">Running plain OCR… {ocrByDoc[row.document_id].progress}%</div>)}
+                      {ocrByDoc[row.document_id]?.status === 'error' && (<p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--mismatch)', overflowWrap: 'break-word' }}>{ocrByDoc[row.document_id].error}</p>)}
                     {ocrByDoc[row.document_id]?.status === 'done' && (
-                      <div style={{ marginTop: 8, padding: 10, border: '1px solid var(--foreground)', borderRadius: 8, background: 'var(--background)', maxWidth: '100%', overflowWrap: 'break-word', boxSizing: 'border-box' }}>
-                        <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 600 }}>Plain OCR (no AI) vs Suri (Muse Spark)</p>
-                        <p style={{ margin: '0 0 6px', fontSize: 12, color: '#666' }}>Plain OCR runs in your browser — no server cost.</p>
-                        <p style={{ margin: '0 0 8px', fontSize: 14 }}>Plain OCR found {ocrByDoc[row.document_id].foundCount} of {ocrByDoc[row.document_id].total} fields.</p>
-                        <div style={{ display: 'grid', gap: 6 }}>
-                          {ocrByDoc[row.document_id].perField.map(function (pf) {
-                            return (
-                              <div key={pf.fieldKey} style={{ padding: '6px 8px', border: '1px solid var(--foreground)', borderRadius: 6, background: 'var(--background)' }}>
-                                <div style={{ fontSize: 14, overflowWrap: 'break-word' }}><b>{pf.fieldKey}:</b> Suri (Muse Spark): {pf.suriValue}</div>
-                                <div style={{ fontSize: 14 }}>Plain OCR (no AI): {pf.suriUnreadable ? (<span style={{ color: '#888' }}>—</span>) : (pf.found ? (<span style={{ color: '#0a0' }}>✓ found</span>) : (<span style={{ color: '#888' }}>✗ not found</span>))}</div>
+                      <div>
+                        {function () {
+                          const pf = ocrByDoc[row.document_id].perField || [];
+                          const fieldsForScore = fieldsMap[row.document_id] || [];
+                          const total = fieldsForScore.length || pf.length || ocrByDoc[row.document_id].total || 0;
+                          const suriRead = fieldsForScore.filter(function (f) { return f && !f.unreadable && f.value_text != null && String(f.value_text).trim() !== ''; }).length;
+                          const ocrFound = ocrByDoc[row.document_id].foundCount != null ? ocrByDoc[row.document_id].foundCount : pf.filter(function (x) { return x.found; }).length;
+                          return (
+                            <>
+
+                              <div className="rv-ocr-tablewrap"><table className="rv-ocr-table"><thead><tr><th>Field</th><th>Suri</th><th>Plain OCR</th></tr></thead>
+                                  <tbody>
+                                    {pf.map(function (item) {
+                                      return (
+                                        <tr key={item.fieldKey}>
+                                          <td>{humanFieldLabel(item.fieldKey)}</td>
+                                          <td>{item.suriValue}</td>
+                                          <td className={item.found ? "rv-ocr-yes" : "rv-ocr-no"}>{item.found ? '✓ found in text' : '✕ not found'}</td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
                               </div>
-                            );
-                          })}
-                        </div>
-                        <div style={{ marginTop: 8, maxHeight: 180, overflow: 'auto', whiteSpace: 'pre-wrap', fontSize: 13, fontFamily: 'monospace', border: '1px solid var(--foreground)', borderRadius: 6, padding: 8, background: 'var(--background)', color: 'var(--foreground)', overflowWrap: 'break-word', wordBreak: 'break-word', boxSizing: 'border-box' }}>{ocrByDoc[row.document_id].ocrText || '(no text)'}</div>
-                        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                          <button type="button" onClick={() => handleOcrCopy(ocrByDoc[row.document_id].ocrText)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Copy OCR text</button>
-                          <button type="button" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Run again</button>
-                          <button type="button" onClick={() => handleOcrHide(row.document_id)} style={Object.assign({}, SMALLBTN, { marginRight: 0 })}>Hide</button>
-                        </div>
+                              <p className="rv-ocr-note">Plain OCR doesn't read fields. This only checks whether Suri's value appears somewhere in its raw text.</p>
+
+
+
+                              <details className="rv-ocr-raw"><summary>Raw OCR text</summary><pre>{ocrByDoc[row.document_id].ocrText || '(no text)'}</pre>
+                              </details>
+                              <div className="rv-ocr-foot"><button className="rv-link" onClick={() => handleOcrCopy(ocrByDoc[row.document_id].ocrText)}>Copy text</button><button className="rv-link" onClick={() => handleOcrCompare(row.document_id, row.doc_type)}>Run again</button><button className="rv-link" onClick={() => handleOcrHide(row.document_id)}>Hide</button></div>
+                            </>
+                          );
+                        }()}
                       </div>
                     )}
-                  </div>
+                    </section>
+                  )}
                   {docReviews.length > 0 && (
-                    <div style={{ marginTop: 8 }}>
-                      <p><b>Review log:</b></p>
+                    <div className="reviewer-review-log">
+                      <h4>Review log</h4>
                       <ol>
-                        {docReviews.map((r, i) => (<li key={i}><small>{r.created_at}</small>: {r.action}{r.field_key ? ' ' + r.field_key : ''}{r.old_value != null || r.new_value != null ? ' ' + (r.old_value || '(empty)') + ' → ' + (r.new_value || '(empty)') : ''}</li>))}
+                        {docReviews.map(function (r, i) {
+                          const t = formatManilaTime(r.created_at);
+                          const label = r.action === 'approve' ? 'Approved' : r.action === 'reject' ? 'Rejected' : r.action === 'correct' ? 'Corrected ' + humanFieldLabel(r.field_key) : r.action;
+                          return (<li key={i}>{label}{t ? ' · ' + t : ''}{r.action === 'correct' && (r.old_value || r.new_value) ? ' ' + (r.old_value || '(empty)') + ' → ' + (r.new_value || '(empty)') : ''}</li>);
+                        })}
                       </ol>
                     </div>
                   )}
-                </div>
-              </div>
+                </>
               )}
             </div>
             );
@@ -887,7 +995,7 @@ export default function SetClient() {
           </section>
         )}
         <aside className="checklist-log">
-          <div className="checklist-log-head"><span className="checklist-log-title mono">01 — what suri did</span><span className="checklist-log-badge mono">WORK LOG</span></div>
+          <div className="checklist-log-head"><span className="checklist-log-title mono">01 — activity</span><span className="checklist-log-badge mono">WORK LOG</span></div>
           {(data.work_log || []).length === 0 && <p style={{ fontSize: 14, color: 'var(--text-2)' }}>(nothing yet)</p>}
           <ol className="checklist-log-list">
             {(function () {

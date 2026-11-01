@@ -75,10 +75,29 @@ export async function PATCH(request, ctx) {
   // Work log: field label only, never the answer text
   try {
     const label = fieldKeyToLabel(clar.field_key);
+    let docTypePrefix = '';
+    try {
+      const { data: docs } = await admin.from('documents').select('doc_type').eq('submission_id', clar.submission_id);
+      if (docs && docs.length > 0) {
+        try {
+          const { getDocumentType } = require('../../../../lib/documents/index.js');
+          for (const d of docs) {
+            const def = getDocumentType(d.doc_type);
+            if (def && Array.isArray(def.fields) && def.fields.some(function(f){ return f && f.key === clar.field_key; })) {
+              docTypePrefix = d.doc_type + ': ';
+              break;
+            }
+          }
+          if (!docTypePrefix) docTypePrefix = docs[0].doc_type + ': ';
+        } catch {
+          docTypePrefix = docs[0].doc_type + ': ';
+        }
+      }
+    } catch {}
     await admin.from('work_log').insert({
       submission_id: clar.submission_id,
       step_type: 'clarification_answered',
-      message: ('Answered for ' + label).slice(0, 200),
+      message: (docTypePrefix + 'Answered for ' + label).slice(0, 200),
     });
   } catch {}
   return NextResponse.json({ ok: true, clarification: { id: clar.id, question: clar.question, answer: trimmed } });
