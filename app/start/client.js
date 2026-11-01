@@ -6,6 +6,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import SuriHeader from '../components/SuriHeader.js';
+import '../flow-polish.css';
 export default function StartClient() {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);

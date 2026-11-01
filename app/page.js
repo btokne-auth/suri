@@ -62,8 +62,21 @@ export default function Home() {
           </nav>
           <div className="landing-sidebar-foot">
             <a href="https://github.com/btokne-auth/suri" target="_blank" rel="noopener noreferrer" className="landing-sidebar-github">
-              github ↗
+              source code ↗
             </a>
+            <div className="landing-built">
+              <span className="landing-built-label">BUILT BY</span>
+              <span className="landing-built-name">Pauline Estira</span>
+              <div className="landing-built-links">
+              <a href="https://github.com/btokne-auth" target="_blank" rel="noopener noreferrer">
+                github ↗
+              </a>
+              <a href="https://www.linkedin.com/in/pauline-estira-962b10375" target="_blank" rel="noopener noreferrer">
+                linkedin ↗
+              </a>
+              <a href="mailto:paulinexavierestira@gmail.com">email ↗</a>
+              </div>
+            </div>
             <span>Built for the Meta Global AI Developer Hackathon.</span>
           </div>
         </aside>
@@ -223,6 +236,19 @@ export default function Home() {
             </section>
 
             <p className="landing-footer">SAMPLE DOCUMENTS ONLY · UPLOADS DELETED AFTER 7 DAYS</p>
+            <div className="landing-built landing-built--phone">
+              <span className="landing-built-label">BUILT BY</span>
+              <span className="landing-built-name">Pauline Estira</span>
+              <div className="landing-built-links">
+              <a href="https://github.com/btokne-auth" target="_blank" rel="noopener noreferrer">
+                github ↗
+              </a>
+              <a href="https://www.linkedin.com/in/pauline-estira-962b10375" target="_blank" rel="noopener noreferrer">
+                linkedin ↗
+              </a>
+              <a href="mailto:paulinexavierestira@gmail.com">email ↗</a>
+              </div>
+            </div>
           </div>
         </main>
       </div>

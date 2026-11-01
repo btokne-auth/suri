@@ -4,6 +4,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import SuriHeader from '../components/SuriHeader.js';
+import '../flow-polish.css';
+const MAX_DESC = 1000;
+const MAX_ANSWER = 500;
 const EXAMPLE = 'Barangay clearance: valid ID + proof of billing. Names match. Address in Barangay Baybayin. Bill from the last 3 months.';
 function docIdOf(e) { return (e && (e.reuse || e.id)) || ''; }
 function builtinLabel(id) {
@@ -156,8 +159,10 @@ export default function SetupClient() {
       </div>
       <label className="profile-label">
         <span className="mono profile-label-text">What do you want to check?</span>
-        <textarea className="setup-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={EXAMPLE} rows={4} />
+        <textarea className="setup-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={EXAMPLE} rows={4} maxLength={MAX_DESC} />
+        <span className={'mono setup-count' + (description.length > MAX_DESC - 100 ? ' setup-count--near' : '')}>{description.length} / {MAX_DESC}</span>
         <span className="mono setup-hint">Example: {EXAMPLE}</span>
+        <span className="mono setup-hint">Keep it short. A check can have up to 6 documents and 20 rules.</span>
       </label>
       {(!draft && !needsMoreInfo && !lastDraftDesc) ? (
         <>
@@ -198,7 +203,7 @@ export default function SetupClient() {
           <p className="setup-needs-hint">Try: which documents, which fields, what to check.</p>
           <label className="profile-label" style={{ marginTop: 12 }}>
             <span className="mono profile-label-text">Your answer</span>
-            <textarea ref={answerRef} className="setup-textarea" value={moreAnswer} onChange={(e) => setMoreAnswer(e.target.value)} rows={3} />
+            <textarea ref={answerRef} className="setup-textarea" value={moreAnswer} onChange={(e) => setMoreAnswer(e.target.value)} rows={3} maxLength={MAX_ANSWER} />
           </label>
           <button type="button" onClick={async () => { const a = moreAnswer.trim(); if (!a) return; const next = description ? description + "\n\n" + a : a; setDescription(next); await build(next); }} disabled={busy} className="checklist-btn-primary" style={{ width: '100%', marginTop: 8 }}>
             Answer and rebuild
