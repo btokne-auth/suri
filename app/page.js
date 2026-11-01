@@ -219,6 +219,52 @@ export default function Home() {
                 </a>
               </div>
               <p className="why-intro">OCR copies the text on a page. Suri understands what the page is, checks it, and tells you what to do next.</p>
+              <div className="why-demo" tabIndex={0}>
+                <div className="why-demo-head">
+                  <span>SAME PHONE PHOTO · TWO RESULTS</span>
+                  <span className="why-demo-tag">ILLUSTRATION · SAMPLE VOTER ID</span>
+                </div>
+                <div className="why-demo-grid">
+                  <div className="why-card why-card--ocr">
+                    <span className="why-card-label">PLAIN OCR</span>
+                    <pre className="why-ocr-text">
+                      LINAWAN V<mark>0</mark>TER <mark>1</mark>D{"\n"}
+                      NAME Ma Theresa S<mark>,</mark> Reyes{"\n"}
+                      B<mark>0</mark>RN 2<mark>OO</mark>7-<mark>O</mark>3-<mark>l</mark>4{"\n"}
+                      SEX Fema<mark>1</mark>e{"\n"}
+                      CITY Lin<mark>aw an</mark>{"\n"}
+                      ID N<mark>0</mark> LWN-V<mark>0</mark>T-<mark>OO</mark>4827
+                    </pre>
+                    <p className="why-card-foot">Text only. You still read it, find each field, and check it yourself.</p>
+                  </div>
+                  <div className="why-card why-card--suri">
+                    <span className="why-card-label">SURI</span>
+                    <div className="why-fields">
+                      <div className="why-field">
+                        <span className="why-field-key">FULL NAME</span>
+                        <span className="why-field-val">Ma. Theresa S. Reyes</span>
+                        <span className="why-tag why-tag--ask">▪ ASKS: SAME AS MARIA?</span>
+                      </div>
+                      <div className="why-field">
+                        <span className="why-field-key">BIRTH DATE</span>
+                        <span className="why-field-val">2007-03-14</span>
+                        <span className="why-tag">✓ MATCHES BIRTH CERT</span>
+                      </div>
+                      <div className="why-field">
+                        <span className="why-field-key">CITY</span>
+                        <span className="why-field-val">Linawan</span>
+                        <span className="why-tag">✓ OFFICE RULE PASSED</span>
+                      </div>
+                      <div className="why-field">
+                        <span className="why-field-key">ID NUMBER</span>
+                        <span className="why-field-val">LWN-VOT-004827</span>
+                        <span className="why-tag">✓ READ</span>
+                      </div>
+                    </div>
+                    <p className="why-card-foot why-card-foot--suri">Fields, already checked. You answer one question.</p>
+                  </div>
+                </div>
+              </div>
               <div className="why-table" role="table" aria-label="Plain OCR compared with Suri">
                 <div className="why-row why-row--head" role="row">
                   <span role="columnheader" />
@@ -233,10 +279,6 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-              <p className="why-note">
-                To be fair: plain OCR is faster (about 0.8 s per document, right in your browser). Suri takes about 6 s because Meta
-                Muse Spark 1.3 reads the page and then code checks it. You can run both on the same document in the reviewer view.
-              </p>
             </section>
 
             <section id="privacy" className="landing-section">

@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v13 (hand-written, do not edit by AI)
+   Suri — landing polish v14 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -1419,14 +1419,138 @@
 }
 .why-row:hover .why-suri::before,
 .why-row:focus-visible .why-suri::before { box-shadow: 0 0 8px rgba(127, 214, 166, 0.6); }
-.why-note {
-  margin: 16px 0 0;
-  padding-left: 12px;
-  border-left: 1px solid var(--line-strong);
-  font-size: 12px;
-  line-height: 1.6;
+/* same photo, two results */
+.why-demo {
+  margin: 0 0 28px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: radial-gradient(circle, #1c1d21 0.8px, transparent 1.2px) 0 0 / 6px 6px, rgba(20, 21, 24, 0.5);
+  outline: none;
+}
+.why-demo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.why-demo-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 14px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
+}
+.why-demo-tag { color: var(--text-3); }
+.why-demo-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@media (min-width: 720px) {
+  .why-demo-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); }
+}
+.why-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s cubic-bezier(.2,.7,.2,1);
+}
+.why-card-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
   color: var(--text-3);
 }
+.why-card--suri .why-card-label { color: var(--match); }
+.why-ocr-text {
+  margin: 0;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--text-3);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.why-ocr-text mark {
+  background: transparent;
+  color: inherit;
+  border-radius: 2px;
+  transition: background 0.25s ease, color 0.25s ease;
+}
+.why-card-foot {
+  margin: auto 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+.why-card-foot--suri { color: var(--text-2); }
+.why-fields { display: flex; flex-direction: column; }
+.why-field {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.why-field:last-child { border-bottom: 0; }
+.why-field-key {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+}
+.why-field-val { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.why-tag {
+  justify-self: end;
+  padding: 2px 6px;
+  border: 1px solid #1f4a33;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: var(--match);
+  white-space: nowrap;
+}
+.why-tag--ask { border-color: #3d2f10; color: var(--check); }
+@media (max-width: 520px) {
+  .why-field { grid-template-columns: minmax(0, 1fr) auto; }
+  .why-field-key { grid-column: 1 / -1; }
+}
+
+/* hover: OCR mistakes light up red, Suri's card lifts and its tags glow */
+.why-demo:hover .why-ocr-text mark,
+.why-demo:focus-visible .why-ocr-text mark {
+  background: rgba(242, 154, 154, 0.18);
+  color: var(--mismatch);
+}
+.why-demo:hover .why-card--suri,
+.why-demo:focus-visible .why-card--suri {
+  transform: translateY(-3px);
+  border-color: rgba(127, 214, 166, 0.35);
+  box-shadow: 0 16px 34px -16px rgba(0, 0, 0, 0.8), 0 0 30px -10px rgba(127, 214, 166, 0.3);
+}
+.why-demo:hover .why-tag,
+.why-demo:focus-visible .why-tag { animation: why-tag-pop 0.35s ease both; }
+.why-demo:hover .why-field:nth-child(2) .why-tag { animation-delay: 0.08s; }
+.why-demo:hover .why-field:nth-child(3) .why-tag { animation-delay: 0.16s; }
+.why-demo:hover .why-field:nth-child(4) .why-tag { animation-delay: 0.24s; }
+@keyframes why-tag-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); box-shadow: 0 0 10px rgba(127, 214, 166, 0.4); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .why-card { transition: none; }
+  .why-demo:hover .why-card--suri { transform: none; }
+  .why-demo:hover .why-tag { animation: none; }
+}
+
 @media (max-width: 640px) {
   .why-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; }
   .why-label { grid-column: 1 / -1; }
