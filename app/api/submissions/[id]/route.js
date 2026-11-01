@@ -147,7 +147,7 @@ export async function GET(request, ctx) {
   // check results yet and would look ready. Treat it as still working until
   // a check_finished / check_failed entry exists after its upload (max 2 min).
   function checksStillRunning(d, mine) {
-    if (!d || d.status !== 'needs_review' || mine.length > 0) return false;
+    if (!d || d.status !== 'needs_review') return false;
     const uploadedAt = Date.parse(d.created_at);
     if (!Number.isFinite(uploadedAt)) return false;
     if (Date.now() - uploadedAt > 2 * 60 * 1000) return false;

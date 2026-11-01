@@ -162,7 +162,7 @@ export default function SetupClient() {
         <textarea className="setup-textarea" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={EXAMPLE} rows={4} maxLength={MAX_DESC} />
         <span className={'mono setup-count' + (description.length > MAX_DESC - 100 ? ' setup-count--near' : '')}>{description.length} / {MAX_DESC}</span>
         <span className="mono setup-hint">Example: {EXAMPLE}</span>
-        <span className="mono setup-hint">Keep it short. A check can have up to 4 documents and 20 rules.</span>
+        <span className="mono setup-hint">Keep it short. A check can have up to 6 documents and 20 rules.</span>
       </label>
       {(!draft && !needsMoreInfo && !lastDraftDesc) ? (
         <>

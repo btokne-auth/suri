@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — /start and /setup polish v5 (hand-written, do not edit by AI)
+   Suri — /start and /setup polish v6 (hand-written, do not edit by AI)
    Looks only. Every rule is scoped to .start-page or .setup-page,
    so /profile and the checklist are not affected.
    ========================================================= */
@@ -393,6 +393,19 @@
   transition: color 0.2s ease;
 }
 .setup-page .setup-count--near { color: var(--check); }
+
+/* one line under the can't-check list saying why */
+.setup-page .setup-not-checked::after {
+  content: "These aren't printed on the paper, or a photo can't prove them (another office's records, a real signature, a judgement call). Suri won't guess, so it hands them to a person.";
+  display: block;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
