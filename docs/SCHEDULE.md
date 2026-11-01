@@ -1,6 +1,6 @@
 # Suri: Schedule
 
-All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Target: submit the evening of Nov 4.
+All times Manila. Submission deadline: **Thu Nov 5, 10:00 AM** (Wed Nov 4, 9 PM ET; US clocks left daylight time on Nov 1, so Manila is 13 hours ahead). Target: submit on Nov 4, a day early.
 
 ## Build order (do these in order)
 
@@ -21,8 +21,10 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 | 7c | **Set up a check:** plain words become a confirmed process | Thu–Fri Oct 29–30 | Done when: an office description (e.g. barangay clearance: valid ID + proof of billing, names match, address in Barangay Baybayin, bill within 3 months) becomes a confirmed process, and uploads are read and checked on the live URL |
 | 8 | **Proof:** sample documents + answer key, eval script, plain OCR vs Suri scorecard | Sat Oct 31 | A table of real accuracy numbers |
 | 9 | **Should features:** photo quality / retake, wrong-document check, Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, security pass | Sun–Mon Nov 1–2 | Each tested on the live URL; eval rerun after SAM |
-| 10 | **Polish:** README, logo files + favicon, scan beam, isometric SVG hero, light mode toggle; Could items only if time is left | Tue Nov 3 | README done; nothing broken. **Feature freeze tonight** |
-| 11 | **Ship:** record and edit the video, secret scan, make the repo public, submit | Wed Nov 4 | Submitted, with a screenshot of the confirmation |
+| 10 | **Design + polish (see DESIGN.md):** 10a landing, 10b checklist, 10c reviewer, 10d start/profile/setup, favicon, landing hero story, /start + /setup polish. Light mode toggle and isometric hero dropped (out of scope) | Oct 31 – Nov 1 | Done Nov 1 (PRs #14–#17) |
+| 10e | **Outside test + code freeze:** girlfriend tests the live site on her phone, phone run-through, fix only real bugs | Mon Nov 2 | Test notes written, bugs fixed. **Code freeze tonight** |
+| 11a | **Ship prep:** README, license, secret scan, clean temp files, make the repo public, video, submission draft | Tue Nov 3 | Repo opens in a logged-out browser; video under 3:00 uploaded; draft ready |
+| 11b | **Submit** | Wed Nov 4 | Submitted, with a screenshot of the confirmation |
 | — | Official deadline (buffer only) | Thu Nov 5, 10 AM | |
 
 ## Event dates (Manila)
@@ -34,12 +36,12 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 | Sat Oct 31, 12 AM | Fireworks AI workshop (recorded) |
 | Weekdays, 10–11 PM (11 PM–12 AM from Nov 2) | Meta office hours on Discord |
 | Nov 5, 10 AM | **Submissions close** |
-| Nov 5–9 | Judging (no action needed) |
+| Nov 5–9 | Judging. Judges may test the live site any time: keep it running, no risky changes after submitting |
 | Nov 10, 1 AM | Closing ceremony, live finals |
 
 ## Where we are now
 
-**Day 4 (Oct 30), step 9: photo quality / retake + wrong-document check**
+**Day 6 (Nov 1), building is done. Next: Nov 2 outside test, then code freeze.**
 - [x] Step 5 upload pipeline done (profile, submissions, upload + magic-byte checks + limits, background reading reading to needs_review on its own, owner-only image URL; phone proof passed; dev-only test page 404s in production)
 - [x] $150 Meta credits active; models decided (`muse-spark-1.3` for Suri and Cline)
 - [x] Organizers confirmed: any coding tools are allowed; the submitted repo must be public
@@ -70,29 +72,43 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - [x] Auto-delete demo uploads and their rows after 7 days done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)
 - [x] Compare with plain OCR done: reviewer button runs Tesseract in the browser (self-hosted, lazy-loaded), same scoring module as the eval; also fixed a hydration mismatch on the checklist
 - [x] Eval rerun done (Oct 30) fresh full 25: Meta 171/179 95.5% (8 retake, 0 wrong-doc, 0 wrong value, 5.8s avg), Baseten 173/179 96.6% (0 retake, 0 wrong-doc, 6 wrong value, 22.4s avg), OCR 135/179 75.4% 0.8s, poison PASS both; SCORECARD.md + scorecard.csv rebuilt with 3-way split and full-25 timing, previous Oct 29 kept; note: first phone billing photo was a report card and was correctly flagged as wrong document — replaced with a real photo of the bill
-- [ ] Next: step 10 (design)
+- [x] Step 10 design done: 10a landing, 10b checklist, 10d start/profile/setup, 10c reviewer redesign (PR #14)
+- [x] Suri asks about names instead of guessing: Ma./Sto./Sta. expanded, word-by-word compare, small spelling slips forgiven, extra words → "check" (PR #14)
+- [x] Visible model calls: server log prints `[suri] meta · muse-spark-1.3 · read valid_id · 3.7s · ok` (no document text); activity log shows "Meta Muse Spark 1.3 · 3.7 s" (PR #14)
+- [x] False READY fixed: rows show "Checking against your other papers…" until a check_finished / check_failed entry exists (PR #15, extended in PR #17 for custom checks whose results arrive in two batches)
+- [x] Landing polish (PR #16): 24-second hero story (pick, read & ask, build your own), name meaning, accuracy cards, how-it-works outline, privacy cards, Suri favicon, built-by credits, sticky sidebar
+- [x] /start + /setup polish (PR #17): square markers, card spacing, description limit 1000 characters with counter, "can't check" card with a one-line reason
+- [x] Custom checks allow up to 6 documents (was 4); extra documents are listed as "Not included (limit is 6 documents)" instead of dropped silently (PR #17)
+- [x] Tests: 399 passed, 0 failed (`node --test "tests/**/*.test.js"`; plain `node --test` also picks up scripts/read-test.mjs, which is a manual script, not a test)
+- [ ] Next: Nov 2 outside test on the live site (phone), then code freeze
 - [ ] Check the Billing page usage every night
 
 ## Polish list (step 10)
 
-- Applicant / Reviewer switch should show which side is active
-- Field labels in plain words (full_name → Full name, date_of_birth → Birth date, etc.)
-- Work log labels in plain words (check_finished, reading_started → plain sentences)
-- /profile shows the same error twice (red under the field and grey at the bottom)
-- Empty birth date says "use YYYY-MM-DD"; should say "Please enter your birth date"
-- Amounts shown inconsistently (75 vs 75.00); show as ₱75.00
-- Override note box has no visible border
-- "Overridden. A person decides." banner shows twice
-- /setup confirm screen shows field keys (full_name (name, required)) instead of plain labels
-- / (front page) still shows the Next.js starter page; tab title says 'Create Next App'
-- wrong-document label reads 'report card (form 138 style)'
-- Reviewer header repeats 'answered, a person will decide' twice
-- Field keys shown as code in the OCR comparison card (full_name etc.)
+Ticked = seen working on Nov 1. Unticked = not re-checked yet; look during the Nov 2 test.
+
+- [x] Applicant / Reviewer switch shows which side is active
+- [x] Field labels in plain words on the checklist and /setup
+- [x] Work log labels in plain words ("Suri · Reading · Valid ID")
+- [x] / shows the Suri landing page; tab title is Suri; Suri favicon
+- [x] Wrong-document label shows the plain name only
+- [ ] /profile shows the same error twice
+- [ ] Empty birth date message says "Please enter your birth date"
+- [ ] Amounts shown as ₱75.00 everywhere
+- [ ] Override note box has a visible border
+- [ ] "Overridden. A person decides." banner shows once
+- [ ] Reviewer header doesn't repeat "answered, a person will decide"
+- [ ] OCR comparison card shows plain field labels
 
 ## Known limits (for README)
 
 - Receipt check reads up to 3 item lines
 - A document stuck in "reading" is only marked as error when the checklist is opened or refreshed
+- A custom check can have up to 6 documents, 12 fields per document, 20 rules and 5 "can't check" items. If more documents are described, Suri keeps 6 and lists the rest as "Not included"; review the draft before saving
+- The /setup description is capped at 1000 characters (the server accepts up to 1500)
+- Things a photo can't prove (records kept by another office, real signatures, original vs photocopy, judgement calls) are listed for a person, never checked
+- Suri doesn't judge whether a document is genuine (see SCOPE.md)
+- When Suri asks for more detail on /setup, the answer is added to the description box and the whole text is drafted again
 
 ## Plan note
 
@@ -100,10 +116,27 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 
 ## Ship checklist (step 11)
 
+**Nov 2 (test + freeze)**
+- [ ] Girlfriend tests the live site on her phone (sample documents only); write down what confused her
+- [ ] Phone run-through on the live URL: landing, /start, Linawan flow, receipt flow, /setup draft + save + use
+- [ ] Fix only real bugs; tests still pass
+- [ ] Code freeze in the evening
+
+**Nov 3 (ship prep)**
+- [ ] README: what Suri is, how it works, **where each model is used** (table), run it with your own key, sample server log lines, scorecard numbers, limitations (Known limits above + SCOPE.md), credits (ascii-reveal inspiration)
 - [ ] Choose a license (MIT / Apache 2.0 / AGPL / none) and check the hackathon terms first
-- [ ] README credits: ascii-reveal (inspiration)
+- [ ] Remove temp files (`_tmp_*.js`, `test-clarify-patch.js`) and anything not meant to be public
+- [ ] Secret scan of the whole git history; `.env*` never committed
 - [ ] Supabase Security Advisor shows no errors
 - [ ] npm audit: no high
+- [ ] Hide the personal GitHub profile README (make that repo private)
+- [ ] Make the repo public; open it in a logged-out browser
+- [ ] Record the video (under 3:00, English, real screen, app + terminal log side by side so the Meta calls show)
+- [ ] Submission draft written
+
+**Nov 4 (submit)**
+- [ ] Submit; screenshot the confirmation
+- [ ] After submitting: no risky changes while judging runs
 
 ## Daily log
 
@@ -132,4 +165,5 @@ All times Manila. Submission deadline: **Nov 5, 10:00 AM** (Nov 4, 9 PM ET). Tar
 - **Day 4 (Oct 30):** Auto-delete done: daily Vercel cron at 03:00 UTC, protected by CRON_SECRET, dry-run tested on the preview (would delete 25 submissions / 53 files with days=0; nothing older than 7 days yet)
 - **Day 4 (Oct 30):** Compare with plain OCR done: reviewer button runs Tesseract in the browser (self-hosted, lazy-loaded), same scoring module as the eval; also fixed a hydration mismatch on the checklist
 - **Day 4 (Oct 30):** Eval rerun fresh full 25 (step 9 last item): Meta 171/179 95.5% (8 retake, 0 wrong-doc, 0 wrong value, 5.8s avg), Baseten 173/179 96.6% (0 retake, 0 wrong-doc, 6 wrong value, 22.4s avg), OCR 135/179 75.4% 0.8s, poison PASS both; SCORECARD.md + scorecard.csv rebuilt with 3-way split + full-25 timing, previous Oct 29 kept; 0 errors; note: first phone billing photo was a report card and was correctly flagged as wrong document — replaced with a real photo of the bill; next step 10 polish
-
+- **Day 5 (Oct 31):** Step 10 design: approved the mockups (Bryl Lim-style structure + Suri scanner signature), then built 10a (fonts, tokens, landing), 10b (checklist restyle) and 10d (start/profile/setup restyle). Cline rewrote client.js from an old copy once and lost work; rebuilt it. New rule: risky logic and CSS are hand-written, Cline only makes small exact edits.
+- **Day 6 (Nov 1):** 10c reviewer redesign + name check that asks + visible model calls (PR #14); false READY fix (PR #15); landing polish with the 3-scene hero (PR #16); /start + /setup polish, 6-document limit with "Not included" note, READY flash fix for custom checks (PR #17). Live test: custom barangay check drafted, saved, used; voter ID asked about "Ma.", sample electric bill passed 3 checks. 399 tests pass. **Next:** Nov 2 outside test, code freeze.
