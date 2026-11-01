@@ -1,5 +1,6 @@
 import HeroScan from "./components/HeroScan.js";
 import HowItWorks from "./components/HowItWorks.js";
+import WhySuri from "./components/WhySuri.js";
 import "./landing-polish.css";
 import { listProcesses } from "../lib/processes/index.js";
 
@@ -58,6 +59,7 @@ export default function Home() {
           <nav className="mono landing-nav landing-nav-secondary" aria-label="Secondary">
             <a href="#how-it-works">how it works</a>
             <a href="#accuracy">accuracy</a>
+            <a href="#why-suri">why not OCR</a>
             <a href="#privacy">privacy</a>
           </nav>
           <div className="landing-sidebar-foot">
@@ -95,9 +97,10 @@ export default function Home() {
                     <span className="landing-meaning-def">Filipino, &ldquo;to examine&rdquo;</span>
                   </p>
                 </div>
+                <p className="landing-lead">Get it right the first time.</p>
                 <p className="landing-copy">
-                  Check your papers before the office does. Take a photo of each document. Suri reads it, checks it against your
-                  other papers and the office&apos;s rules, and tells you what to fix.
+                  One misspelled name, an old bill or a blurry ID can send you home from the office. Suri reads each document,
+                  checks it against your other papers and the office&apos;s rules, and tells you what to fix before you go.
                 </p>
                 <p className="landing-copy-muted">It never guesses. When it isn&apos;t sure, it asks. A person always decides.</p>
                 <div className="landing-hero-cta">
@@ -197,9 +200,20 @@ export default function Home() {
               <HowItWorks />
             </section>
 
+            <section id="why-suri" className="landing-section">
+              <div className="landing-section-head">
+                <span className="landing-section-title">03 — why not just OCR?</span>
+                <a href="https://github.com/btokne-auth/suri/blob/main/docs/SCORECARD.md" target="_blank" rel="noopener noreferrer" className="landing-section-link">
+                  SCORECARD ↗
+                </a>
+              </div>
+              <p className="why-intro">OCR copies the text on a page. Suri understands what the page is, checks it, and tells you what to do next.</p>
+              <WhySuri />
+            </section>
+
             <section id="privacy" className="landing-section">
               <div className="landing-section-head">
-                <span className="landing-section-title">03 — privacy</span>
+                <span className="landing-section-title">04 — privacy</span>
               </div>
               <div className="lp-priv">
                 <div className="lp-card lp-card--check" tabIndex={0}>
