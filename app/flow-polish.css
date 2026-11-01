@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — /start and /setup polish v3 (hand-written, do not edit by AI)
+   Suri — /start and /setup polish v5 (hand-written, do not edit by AI)
    Looks only. Every rule is scoped to .start-page or .setup-page,
    so /profile and the checklist are not affected.
    ========================================================= */
@@ -292,9 +292,19 @@
   background: var(--surface);
 }
 .setup-page .setup-not-checked-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 14px;
   line-height: 1.6;
-  color: var(--text-2);
+  color: var(--check);
+}
+.setup-page .setup-not-checked-title::before {
+  content: "";
+  flex: none;
+  width: 8px;
+  height: 8px;
+  background: var(--check);
 }
 .setup-page .setup-not-checked-list {
   list-style: none;
@@ -373,6 +383,16 @@
 .setup-page .setup-text-btn { padding: 6px 0 0; }
 .setup-page .setup-not-checked { margin: 8px 0 0; }
 .setup-page .setup-not-checked + p.mono { margin-top: 24px !important; }
+
+/* character counter under the description */
+.setup-page .setup-count {
+  align-self: flex-end;
+  margin-top: -2px;
+  font-size: 11px;
+  color: var(--text-3);
+  transition: color 0.2s ease;
+}
+.setup-page .setup-count--near { color: var(--check); }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {

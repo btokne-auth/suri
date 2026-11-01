@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v11 (hand-written, do not edit by AI)
+   Suri — landing polish v12 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -1299,6 +1299,29 @@
 @media (max-width: 768px) {
   .landing-built--phone { display: flex; border-bottom: 0; }
 }
+
+/* ---------- 8) Process rows: hover background gets room around the text ---------- */
+.landing-process-row {
+  position: relative;
+  isolation: isolate;
+}
+.landing-process-row:hover { background: transparent; }
+.landing-process-row::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 4px;
+  bottom: 4px;
+  left: -16px;
+  right: -16px;
+  border-radius: 10px;
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.landing-process-row:hover::before,
+.landing-process-row:focus-visible::before { opacity: 1; }
 
 /* ---------- Reduced motion: final states, no movement ---------- */
 @media (prefers-reduced-motion: reduce) {
