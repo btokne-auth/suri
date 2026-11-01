@@ -1,4 +1,5 @@
 import HeroScan from "./components/HeroScan.js";
+import HowItWorks from "./components/HowItWorks.js";
 import "./landing-polish.css";
 import { listProcesses } from "../lib/processes/index.js";
 
@@ -13,6 +14,14 @@ function shortDesc(id) {
   if (id === "receipt_check") return "Items add up, VAT and total match, date is valid.";
   return "";
 }
+
+// Scorecard: 179 fields read. 171 right, 8 asked for a retake, 0 wrong.
+const FIELD_GRID = Array.from({ length: 179 }, (_, i) => ({
+  kind: i < 171 ? "right" : "asked",
+  wave: (i % 20) + Math.floor(i / 20),
+}));
+// Phone photos: 35 fields. Suri 35 right, plain OCR 9 right.
+const PHONE_TICKS = Array.from({ length: 35 }, (_, i) => i);
 
 function docCount(id, docs) {
   const n = Array.isArray(docs) ? docs.length : 0;
@@ -87,28 +96,54 @@ export default function Home() {
             </div>
 
             <div id="accuracy" className="landing-stats">
-              <div className="landing-stat" tabIndex={0}>
+              <div className="landing-stat landing-stat--bars" tabIndex={0}>
                 <span className="landing-stat-value">95.5%</span>
                 <span className="landing-stat-label">FIELDS READ RIGHT</span>
                 <span className="landing-bars" aria-hidden="true">
-                  <span className="landing-bar"><span className="landing-bar-name">Suri</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "95.5%" }} /></span><span className="landing-bar-num">95.5</span></span>
+                  <span className="landing-bar"><span className="landing-bar-name">Suri</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "95.5%" }} /><span className="landing-bar-gap" style={{ left: "75.4%", width: "20.1%" }} /></span><span className="landing-bar-num">95.5</span></span>
                   <span className="landing-bar landing-bar--ocr"><span className="landing-bar-name">OCR</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "75.4%" }} /></span><span className="landing-bar-num">75.4</span></span>
                 </span>
-                <span className="landing-stat-detail">171 of 179 fields · 25 sample documents</span>
+                <span className="landing-stat-detail">171 of 179 fields · 25 sample documents<span className="landing-gap-note"> · +20.1 points over plain OCR</span></span>
               </div>
               <div className="landing-stat landing-stat--match" tabIndex={0}>
                 <span className="landing-stat-value">0</span>
                 <span className="landing-stat-label">WRONG VALUES</span>
+                <span className="landing-grid" aria-hidden="true">
+                  {FIELD_GRID.map((f, i) => (
+                    <i key={i} className={`landing-grid-sq landing-grid-sq--${f.kind}`} style={{ "--w": f.wave }} />
+                  ))}
+                </span>
+                <span className="landing-grid-legend" aria-hidden="true">
+                  <span className="lg-right">■ 171 right</span>
+                  <span className="lg-asked">■ 8 asked</span>
+                  <span className="lg-wrong">■ 0 wrong</span>
+                </span>
                 <span className="landing-stat-detail">Never invented a value across 179 fields. When unsure, it asked.</span>
               </div>
-              <div className="landing-stat" tabIndex={0}>
+              <div className="landing-stat landing-stat--ticks" tabIndex={0}>
                 <span className="landing-stat-value">
                   100% <span className="landing-stat-vs">vs 26%</span>
                 </span>
                 <span className="landing-stat-label">PHONE PHOTOS VS PLAIN OCR</span>
-                <span className="landing-bars" aria-hidden="true">
-                  <span className="landing-bar"><span className="landing-bar-name">Suri</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "100%" }} /></span><span className="landing-bar-num">100</span></span>
-                  <span className="landing-bar landing-bar--ocr"><span className="landing-bar-name">OCR</span><span className="landing-bar-track"><span className="landing-bar-fill" style={{ width: "26%" }} /></span><span className="landing-bar-num">26</span></span>
+                <span className="landing-ticks" aria-hidden="true">
+                  <span className="landing-tick-row">
+                    <span className="landing-tick-name">Suri</span>
+                    <span className="landing-tick-track">
+                      {PHONE_TICKS.map((i) => (
+                        <i key={i} className="landing-tick landing-tick--on" style={{ "--i": i }} />
+                      ))}
+                    </span>
+                    <span className="landing-tick-num">35</span>
+                  </span>
+                  <span className="landing-tick-row landing-tick-row--ocr">
+                    <span className="landing-tick-name">OCR</span>
+                    <span className="landing-tick-track">
+                      {PHONE_TICKS.map((i) => (
+                        <i key={i} className={`landing-tick${i < 9 ? " landing-tick--on" : ""}`} style={{ "--i": i }} />
+                      ))}
+                    </span>
+                    <span className="landing-tick-num">9</span>
+                  </span>
                 </span>
                 <span className="landing-stat-detail">35 of 35 phone-photo fields vs 9 of 35</span>
               </div>
@@ -137,30 +172,33 @@ export default function Home() {
               <div className="landing-section-head">
                 <span className="landing-section-title">02 — how it works</span>
               </div>
-              <div className="landing-how-list">
-                <div className="landing-how-row">
-                  <span className="landing-how-num">01</span>
-                  <span className="landing-how-text">Take a photo of each document.</span>
-                </div>
-                <div className="landing-how-row">
-                  <span className="landing-how-num">02</span>
-                  <span className="landing-how-text">Suri reads it and checks it against your other papers and the office&apos;s rules.</span>
-                </div>
-                <div className="landing-how-row">
-                  <span className="landing-how-num">03</span>
-                  <span className="landing-how-text">It tells you what&apos;s ready and what to fix. When it isn&apos;t sure, it asks. A person always decides.</span>
-                </div>
-              </div>
+              <HowItWorks />
             </section>
 
             <section id="privacy" className="landing-section">
               <div className="landing-section-head">
                 <span className="landing-section-title">03 — privacy</span>
               </div>
-              <div className="landing-privacy-list">
-                <p className="landing-privacy-line">Use sample documents only. Never upload a real ID.</p>
-                <p className="landing-privacy-line">Uploads and results are deleted automatically after 7 days.</p>
-                <p className="landing-privacy-line">No account needed. You only see your own checks.</p>
+              <div className="lp-priv">
+                <div className="lp-priv-row lp-priv--check" tabIndex={0}>
+                  <span className="lp-priv-tag">▪ SAMPLES ONLY</span>
+                  <p className="lp-priv-text">Use sample documents only. Never upload a real ID.</p>
+                </div>
+                <div className="lp-priv-row lp-priv--days" tabIndex={0}>
+                  <span className="lp-priv-tag">
+                    <span className="lp-days" aria-hidden="true">
+                      {[0, 1, 2, 3, 4, 5, 6].map((d) => (
+                        <i key={d} style={{ "--d": d }} />
+                      ))}
+                    </span>
+                    7 DAYS
+                  </span>
+                  <p className="lp-priv-text">Uploads and results are deleted automatically after 7 days.</p>
+                </div>
+                <div className="lp-priv-row lp-priv--match" tabIndex={0}>
+                  <span className="lp-priv-tag">✓ NO ACCOUNT</span>
+                  <p className="lp-priv-text">No account needed. You only see your own checks.</p>
+                </div>
               </div>
             </section>
 
