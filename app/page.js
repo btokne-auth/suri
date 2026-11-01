@@ -61,6 +61,9 @@ export default function Home() {
             <a href="#privacy">privacy</a>
           </nav>
           <div className="landing-sidebar-foot">
+            <a href="https://github.com/btokne-auth/suri" target="_blank" rel="noopener noreferrer" className="landing-sidebar-github">
+              github ↗
+            </a>
             <span>Built for the Meta Global AI Developer Hackathon.</span>
           </div>
         </aside>
@@ -70,9 +73,6 @@ export default function Home() {
             <div className="landing-hero">
               <div className="landing-hero-scan">
                 <HeroScan />
-                <span className="mono" style={{ fontSize: 11, letterSpacing: ".06em", color: "#8B8D94", height: 16 }}>
-                  <span className="type">ANALYSIS COMPLETE · 2 READY · 1 TO CONFIRM</span>
-                </span>
               </div>
               <div className="landing-hero-copy">
                 <h1 className="landing-title">Suri</h1>
@@ -81,21 +81,19 @@ export default function Home() {
                   other papers and the office&apos;s rules, and tells you what to fix.
                 </p>
                 <p className="landing-copy-muted">It never guesses. When it isn&apos;t sure, it asks. A person always decides.</p>
-                <div className="mono landing-hero-links">
-                  <a href="#how-it-works" className="landing-hero-link">
-                    how it works ↓
+                <div className="landing-hero-cta">
+                  <a href="/start" className="hero-btn">
+                    start a check <span className="hero-arrow">→</span>
                   </a>
-                  <a href="https://github.com/btokne-auth/suri/blob/main/docs/SCORECARD.md" target="_blank" rel="noopener noreferrer" className="landing-hero-link">
-                    scorecard ↗
-                  </a>
-                  <a href="https://github.com/btokne-auth/suri" target="_blank" rel="noopener noreferrer" className="landing-hero-link">
-                    github ↗
+                  <a href="/setup" className="hero-sub">
+                    or set up your own
                   </a>
                 </div>
               </div>
             </div>
 
-            <div id="accuracy" className="landing-stats">
+            <div id="accuracy" className="landing-accuracy">
+            <div className="landing-stats">
               <div className="landing-stat landing-stat--bars" tabIndex={0}>
                 <span className="landing-stat-value">95.5%</span>
                 <span className="landing-stat-label">FIELDS READ RIGHT</span>
@@ -147,6 +145,11 @@ export default function Home() {
                 </span>
                 <span className="landing-stat-detail">35 of 35 phone-photo fields vs 9 of 35</span>
               </div>
+            </div>
+
+            <a href="https://github.com/btokne-auth/suri/blob/main/docs/SCORECARD.md" target="_blank" rel="noopener noreferrer" className="landing-scorecard-link">
+              FULL SCORECARD ↗
+            </a>
             </div>
 
             <section className="landing-section">
