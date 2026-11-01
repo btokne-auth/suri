@@ -76,12 +76,12 @@ const STEPS = [
 
 export default function HowItWorks() {
   const [active, setActive] = useState(0);
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState(-1);
   const step = STEPS[active];
 
   function pick(i) {
     setActive(i);
-    setOpen(0);
+    setOpen(-1);
   }
 
   function onKey(e, i) {
@@ -141,9 +141,7 @@ export default function HowItWorks() {
                   onClick={() => setOpen(isOpen ? -1 : j)}
                 >
                   <span>{part.title}</span>
-                  <span className="hiw-chevron" aria-hidden="true">
-                    ⌄
-                  </span>
+                  <span className="hiw-chevron" aria-hidden="true" />
                 </button>
                 <ul id={`hiw-acc-${j}`} className="hiw-acc-body" hidden={!isOpen}>
                   {part.points.map((pt) => (

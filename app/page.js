@@ -180,23 +180,34 @@ export default function Home() {
                 <span className="landing-section-title">03 — privacy</span>
               </div>
               <div className="lp-priv">
-                <div className="lp-priv-row lp-priv--check" tabIndex={0}>
+                <div className="lp-card lp-card--check" tabIndex={0}>
                   <span className="lp-priv-tag">▪ SAMPLES ONLY</span>
+                  <span className="lp-visual lp-redact" aria-hidden="true">
+                    <span className="lp-redact-line"><b>NAME</b><span className="lp-redact-val">JUAN DELA CRUZ</span></span>
+                    <span className="lp-redact-line"><b>ID NO.</b><span className="lp-redact-val">1234-5678-9012</span></span>
+                  </span>
                   <p className="lp-priv-text">Use sample documents only. Never upload a real ID.</p>
                 </div>
-                <div className="lp-priv-row lp-priv--days" tabIndex={0}>
-                  <span className="lp-priv-tag">
-                    <span className="lp-days" aria-hidden="true">
-                      {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                        <i key={d} style={{ "--d": d }} />
-                      ))}
-                    </span>
-                    7 DAYS
+                <div className="lp-card lp-card--days" tabIndex={0}>
+                  <span className="lp-priv-tag">▪ DELETED AFTER 7 DAYS</span>
+                  <span className="lp-visual lp-days" aria-hidden="true">
+                    {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                      <span key={d} className="lp-day" style={{ "--d": d }}>
+                        <i />
+                        <small>D{d}</small>
+                      </span>
+                    ))}
                   </span>
                   <p className="lp-priv-text">Uploads and results are deleted automatically after 7 days.</p>
                 </div>
-                <div className="lp-priv-row lp-priv--match" tabIndex={0}>
+                <div className="lp-card lp-card--match" tabIndex={0}>
                   <span className="lp-priv-tag">✓ NO ACCOUNT</span>
+                  <span className="lp-visual lp-mine" aria-hidden="true">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => (
+                      <i key={k} className={k === 2 ? "is-you" : ""} style={{ "--k": k }} />
+                    ))}
+                    <span className="lp-mine-label">YOU</span>
+                  </span>
                   <p className="lp-priv-text">No account needed. You only see your own checks.</p>
                 </div>
               </div>

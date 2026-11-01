@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v3 (hand-written, do not edit by AI)
+   Suri — landing polish v4 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -13,11 +13,25 @@
   position: relative;
   outline: none;
 }
-/* no glow, no top line: the content itself reacts */
+/* hover: the card lifts off the page with a soft tinted glow */
+.landing-stat {
+  --glow: rgba(139, 141, 148, 0.18);
+  border-radius: 0;
+  transition: transform 0.25s cubic-bezier(.2,.7,.2,1), background 0.25s ease, box-shadow 0.25s ease, border-radius 0.25s ease;
+}
+.landing-stat--bars { --glow: rgba(127, 214, 166, 0.14); }
+.landing-stat--match { --glow: rgba(127, 214, 166, 0.2); }
+.landing-stat--ticks { --glow: rgba(127, 214, 166, 0.14); }
 .landing-stat:hover,
 .landing-stat:focus-visible {
-  box-shadow: none;
-  text-shadow: none;
+  z-index: 1;
+  transform: translateY(-6px);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--line-strong),
+    0 18px 40px -12px rgba(0, 0, 0, 0.8),
+    0 0 36px -8px var(--glow);
 }
 .landing-stat:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 
@@ -283,23 +297,29 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 12px 0;
+  padding: 16px 0;
   border: 0;
   border-bottom: 2px solid transparent;
   background: transparent;
   cursor: pointer;
   text-align: left;
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text-2);
   transition: color 0.15s ease, border-color 0.15s ease;
 }
 .hiw-acc-head:hover { color: var(--text); }
 .hiw-acc-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .hiw-acc-item.is-open .hiw-acc-head { color: var(--text); border-bottom-color: var(--match); }
-.hiw-chevron { font-size: 14px; line-height: 1; transition: transform 0.2s ease; }
+.hiw-chevron {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid var(--match);
+  transition: transform 0.2s ease;
+}
 .hiw-acc-item.is-open .hiw-chevron { transform: rotate(180deg); }
 .hiw-acc-body {
   margin: 0;
@@ -321,34 +341,41 @@
   color: var(--text-3);
 }
 
-/* ---------- 3) Privacy: status tags ---------- */
-.lp-priv { display: flex; flex-direction: column; }
-.lp-priv-row {
-  --tone: var(--text-2);
-  --tone-line: var(--line-strong);
+/* ---------- 3) Privacy: 3 cards, each with its own hover ---------- */
+.lp-priv {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-  padding: 14px 0 14px 12px;
-  border-top: 1px solid var(--line);
-  border-left: 2px solid transparent;
+  gap: 12px;
+  margin-top: 8px;
+}
+@media (min-width: 760px) {
+  .lp-priv { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.lp-card {
+  --tone: var(--text-2);
+  --tone-line: var(--line-strong);
+  --glow: rgba(139, 141, 148, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
   outline: none;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: transform 0.25s cubic-bezier(.2,.7,.2,1), background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
-@media (min-width: 640px) {
-  .lp-priv-row { grid-template-columns: 150px minmax(0, 1fr); gap: 16px; align-items: center; }
+.lp-card--check { --tone: var(--check); --tone-line: rgba(240, 196, 106, 0.4); --glow: rgba(240, 196, 106, 0.16); }
+.lp-card--match { --tone: var(--match); --tone-line: rgba(127, 214, 166, 0.4); --glow: rgba(127, 214, 166, 0.16); }
+.lp-card:hover,
+.lp-card:focus-visible {
+  transform: translateY(-6px);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.8), 0 0 36px -8px var(--glow);
 }
-.lp-priv--check { --tone: var(--check); --tone-line: rgba(240, 196, 106, 0.4); }
-.lp-priv--days { --tone: var(--text-2); --tone-line: var(--line-strong); }
-.lp-priv--match { --tone: var(--match); --tone-line: rgba(127, 214, 166, 0.4); }
-.lp-priv-row:hover,
-.lp-priv-row:focus-visible { border-left-color: var(--tone); background: rgba(255, 255, 255, 0.015); }
-.lp-priv-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lp-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .lp-priv-tag {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-self: flex-start;
   padding: 3px 8px;
   border: 1px solid var(--tone-line);
   border-radius: 4px;
@@ -358,26 +385,87 @@
   color: var(--tone);
   white-space: nowrap;
 }
-.lp-priv-text { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); }
-.lp-priv-row:hover .lp-priv-text,
-.lp-priv-row:focus-visible .lp-priv-text { color: var(--text); }
+.lp-visual {
+  display: flex;
+  min-height: 44px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.lp-priv-text { margin: 0; font-size: 14px; line-height: 1.5; color: var(--text-2); transition: color 0.2s ease; }
+.lp-card:hover .lp-priv-text,
+.lp-card:focus-visible .lp-priv-text { color: var(--text); }
 
-/* 7 day squares: on hover they empty one by one */
-.lp-days { display: inline-flex; gap: 2px; }
-.lp-days i {
+/* card 1: the "real" values get redacted */
+.lp-redact { flex-direction: column; justify-content: center; gap: 6px; }
+.lp-redact-line { display: flex; gap: 10px; align-items: center; color: var(--text-2); }
+.lp-redact-line b { width: 48px; font-weight: 400; color: var(--text-3); }
+.lp-redact-val { position: relative; color: var(--text-2); }
+.lp-redact-val::after {
+  content: "";
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  top: 1px;
+  bottom: 1px;
+  background: var(--check);
+  border-radius: 1px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s cubic-bezier(.2,.7,.2,1);
+}
+.lp-redact-line:nth-child(2) .lp-redact-val::after { transition-delay: 0.12s; }
+.lp-card--check:hover .lp-redact-val::after,
+.lp-card--check:focus-visible .lp-redact-val::after { transform: scaleX(1); }
+
+/* card 2: 7 days count down */
+.lp-days { align-items: flex-end; gap: 6px; }
+.lp-day { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-3); }
+.lp-day i {
   display: block;
-  width: 5px;
-  height: 5px;
+  width: 14px;
+  height: 22px;
+  border: 1px solid var(--line-strong);
   background: var(--text-2);
+  opacity: 0.55;
 }
-.lp-priv--days:hover .lp-days i,
-.lp-priv--days:focus-visible .lp-days i {
-  animation: lp-day-out 0.25s ease calc((6 - var(--d)) * 110ms) both;
+.lp-day small { font-size: 9px; }
+.lp-card--days:hover .lp-day i,
+.lp-card--days:focus-visible .lp-day i {
+  animation: lp-day-out 0.25s ease calc(var(--d) * 110ms) both;
 }
+.lp-card--days:hover .lp-day:last-child small,
+.lp-card--days:focus-visible .lp-day:last-child small { color: var(--mismatch); transition: color 0.2s ease 0.8s; }
 @keyframes lp-day-out {
-  from { background: var(--text-2); }
-  to { background: var(--line-strong); }
+  from { opacity: 0.55; background: var(--text-2); }
+  to { opacity: 1; background: transparent; }
 }
+
+/* card 3: other people's checks fade away, yours stays */
+.lp-mine { position: relative; display: grid; grid-template-columns: repeat(8, 14px); gap: 6px; align-content: center; }
+.lp-mine i {
+  display: block;
+  width: 14px;
+  height: 18px;
+  border: 1px solid var(--line-strong);
+  background: var(--line);
+  transition: opacity 0.3s ease calc(var(--k) * 40ms), transform 0.3s ease calc(var(--k) * 40ms);
+}
+.lp-mine i.is-you { background: var(--match); border-color: var(--match); opacity: 0.6; }
+.lp-mine-label {
+  grid-column: 3;
+  justify-self: center;
+  font-size: 9px;
+  color: var(--match);
+  opacity: 0;
+  transition: opacity 0.2s ease 0.3s;
+}
+.lp-card--match:hover .lp-mine i:not(.is-you),
+.lp-card--match:focus-visible .lp-mine i:not(.is-you) { opacity: 0.12; transform: scale(0.8); }
+.lp-card--match:hover .lp-mine i.is-you,
+.lp-card--match:focus-visible .lp-mine i.is-you { opacity: 1; transform: translateY(-2px); }
+.lp-card--match:hover .lp-mine-label,
+.lp-card--match:focus-visible .lp-mine-label { opacity: 1; }
 
 /* ---------- Reduced motion: final states, no movement ---------- */
 @media (prefers-reduced-motion: reduce) {
@@ -385,9 +473,11 @@
   .landing-stat--bars:hover .landing-bar-fill,
   .landing-stat--match:hover .landing-grid-sq,
   .landing-stat--ticks:hover .landing-tick--on,
-  .lp-priv--days:hover .lp-days i,
+  .lp-card--days:hover .lp-day i,
   .hiw-panel { animation: none; }
+  .landing-stat, .lp-card, .lp-mine i, .lp-redact-val::after { transition: none; }
+  .landing-stat:hover, .lp-card:hover { transform: none; }
   .landing-stat--bars:hover .landing-bar-gap { animation: none; transform: scaleX(1); opacity: 1; }
   .landing-stat--match:hover .landing-grid-sq { opacity: 0.9; }
-  .hiw-chevron, .landing-gap-note, .lp-priv-row { transition: none; }
+  .hiw-chevron, .landing-gap-note { transition: none; }
 }
