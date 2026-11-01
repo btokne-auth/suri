@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v12 (hand-written, do not edit by AI)
+   Suri — landing polish v13 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -1322,6 +1322,116 @@
 }
 .landing-process-row:hover::before,
 .landing-process-row:focus-visible::before { opacity: 1; }
+
+/* ---------- 9) Hero lead line ---------- */
+.landing-lead {
+  margin: 0 0 -8px;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+/* ---------- 10) Why not just OCR ---------- */
+.why-intro {
+  margin: 18px 0 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+.why-table {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.why-row {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: start;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  outline: none;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.why-row::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 3px;
+  bottom: 3px;
+  left: -16px;
+  right: -16px;
+  border-radius: 10px;
+  background: var(--surface);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.why-row:not(.why-row--head):hover::before,
+.why-row:focus-visible::before { opacity: 1; }
+.why-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.why-row--head {
+  padding: 10px 0;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.why-col-ocr { color: var(--text-3); }
+.why-col-suri { color: var(--match); }
+.why-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-2);
+}
+.why-ocr {
+  position: relative;
+  padding-left: 16px;
+  color: var(--text-3);
+}
+.why-ocr::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--text-3);
+}
+.why-suri {
+  position: relative;
+  padding-left: 16px;
+  color: var(--text);
+}
+.why-suri::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--match);
+  transition: box-shadow 0.2s ease;
+}
+.why-row:hover .why-suri::before,
+.why-row:focus-visible .why-suri::before { box-shadow: 0 0 8px rgba(127, 214, 166, 0.6); }
+.why-note {
+  margin: 16px 0 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--line-strong);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+@media (max-width: 640px) {
+  .why-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px; }
+  .why-label { grid-column: 1 / -1; }
+  .why-row--head > span:first-child { display: none; }
+}
 
 /* ---------- Reduced motion: final states, no movement ---------- */
 @media (prefers-reduced-motion: reduce) {

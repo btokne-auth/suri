@@ -20,6 +20,18 @@ const FIELD_GRID = Array.from({ length: 179 }, (_, i) => ({
   kind: i < 171 ? "right" : "asked",
   wave: (i % 20) + Math.floor(i / 20),
 }));
+// Why not just OCR: numbers from docs/SCORECARD.md (25 sample documents).
+const WHY_ROWS = [
+  ["What you get", "A block of raw text", "Labeled fields: name, birth date, address, amounts"],
+  ["Phone photos (35 sample fields)", "9 read right (26%)", "35 read right (100%)"],
+  ["All 179 sample fields", "135 read right (75.4%)", "171 read right (95.5%), 0 wrong values"],
+  ["When it can't read a photo", "Returns text anyway, right or wrong", "Asks for a retake and says what's wrong"],
+  ["Wrong document in the slot", "Reads it anyway", "Says what the photo looks like instead"],
+  ["Compares your papers", "Not its job", "Names, dates and amounts across papers, checked by code"],
+  ["Filipino names", "Not its job", "Knows Ma., Sto./Sta., dela Cruz, middle initials. Asks when unsure"],
+  ["Office rules", "None", "Built from plain words, confirmed by a person"],
+];
+
 // Phone photos: 35 fields. Suri 35 right, plain OCR 9 right.
 const PHONE_TICKS = Array.from({ length: 35 }, (_, i) => i);
 
@@ -58,6 +70,7 @@ export default function Home() {
           <nav className="mono landing-nav landing-nav-secondary" aria-label="Secondary">
             <a href="#how-it-works">how it works</a>
             <a href="#accuracy">accuracy</a>
+            <a href="#why-suri">why not OCR</a>
             <a href="#privacy">privacy</a>
           </nav>
           <div className="landing-sidebar-foot">
@@ -95,9 +108,10 @@ export default function Home() {
                     <span className="landing-meaning-def">Filipino, &ldquo;to examine&rdquo;</span>
                   </p>
                 </div>
+                <p className="landing-lead">Get it right the first time.</p>
                 <p className="landing-copy">
-                  Check your papers before the office does. Take a photo of each document. Suri reads it, checks it against your
-                  other papers and the office&apos;s rules, and tells you what to fix.
+                  One misspelled name, an old bill or a blurry ID can send you home from the office. Suri reads each document,
+                  checks it against your other papers and the office&apos;s rules, and tells you what to fix before you go.
                 </p>
                 <p className="landing-copy-muted">It never guesses. When it isn&apos;t sure, it asks. A person always decides.</p>
                 <div className="landing-hero-cta">
@@ -197,9 +211,37 @@ export default function Home() {
               <HowItWorks />
             </section>
 
+            <section id="why-suri" className="landing-section">
+              <div className="landing-section-head">
+                <span className="landing-section-title">03 — why not just OCR?</span>
+                <a href="https://github.com/btokne-auth/suri/blob/main/docs/SCORECARD.md" target="_blank" rel="noopener noreferrer" className="landing-section-link">
+                  SCORECARD ↗
+                </a>
+              </div>
+              <p className="why-intro">OCR copies the text on a page. Suri understands what the page is, checks it, and tells you what to do next.</p>
+              <div className="why-table" role="table" aria-label="Plain OCR compared with Suri">
+                <div className="why-row why-row--head" role="row">
+                  <span role="columnheader" />
+                  <span role="columnheader" className="why-col-ocr">PLAIN OCR</span>
+                  <span role="columnheader" className="why-col-suri">SURI</span>
+                </div>
+                {WHY_ROWS.map(([label, ocr, suri]) => (
+                  <div key={label} className="why-row" role="row" tabIndex={0}>
+                    <span role="rowheader" className="why-label">{label}</span>
+                    <span role="cell" className="why-ocr">{ocr}</span>
+                    <span role="cell" className="why-suri">{suri}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="why-note">
+                To be fair: plain OCR is faster (about 0.8 s per document, right in your browser). Suri takes about 6 s because Meta
+                Muse Spark 1.3 reads the page and then code checks it. You can run both on the same document in the reviewer view.
+              </p>
+            </section>
+
             <section id="privacy" className="landing-section">
               <div className="landing-section-head">
-                <span className="landing-section-title">03 — privacy</span>
+                <span className="landing-section-title">04 — privacy</span>
               </div>
               <div className="lp-priv">
                 <div className="lp-card lp-card--check" tabIndex={0}>
