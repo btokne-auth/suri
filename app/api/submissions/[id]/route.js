@@ -143,6 +143,19 @@ export async function GET(request, ctx) {
   for (let i = workLog.length - 1; i >= 0; i--) {
     if (workLog[i].step_type === 'requirement_override') { overrideNote = workLog[i].message; break; }
   }
+  // A document is "read" before its checks finish. In that gap it has no
+  // check results yet and would look ready. Treat it as still working until
+  // a check_finished / check_failed entry exists after its upload (max 2 min).
+  function checksStillRunning(d, mine) {
+    if (!d || d.status !== 'needs_review' || mine.length > 0) return false;
+    const uploadedAt = Date.parse(d.created_at);
+    if (!Number.isFinite(uploadedAt)) return false;
+    if (Date.now() - uploadedAt > 2 * 60 * 1000) return false;
+    for (const w of workLog) {
+      if ((w.step_type === 'check_finished' || w.step_type === 'check_failed') && Date.parse(w.created_at) >= uploadedAt) return false;
+    }
+    return true;
+  }
   const rows = [];
   const gateDoc = reqDoc ? (byType[reqDoc] || null) : null;
   const gateOk = reqDoc ? (gateDoc && (gateDoc.status === 'needs_review' || gateDoc.status === 'approved') && sub.status !== 'requirement_not_met') : true;
@@ -163,6 +176,10 @@ export async function GET(request, ctx) {
       if (d.status === 'uploaded' || d.status === 'reading') {
         action = 'reading';
         reason = 'Still reading, please wait.';
+      } else if (checksStillRunning(d, mine)) {
+        action = 'reading';
+        status = 'reading';
+        reason = 'Checking against your other papers…';
       } else if (d.status === 'retake_needed') {
         action = 'retake';
         try {
