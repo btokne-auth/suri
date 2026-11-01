@@ -1,0 +1,408 @@
+/* =========================================================
+   Suri — /start and /setup polish v2 (hand-written, do not edit by AI)
+   Looks only. Every rule is scoped to .start-page or .setup-page,
+   so /profile and the checklist are not affected.
+   ========================================================= */
+
+/* ---------- Shared: dot texture behind the page, fading down ---------- */
+.checklist-page.start-page::before,
+.checklist-page.setup-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #25272c 0.8px, transparent 1.2px);
+  background-size: 6px 6px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 55%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent 55%);
+}
+
+/* ---------- Shared: the title is "read" once when the page opens ---------- */
+.start-page .checklist-h1,
+.setup-page .checklist-h1 {
+  position: relative;
+  width: fit-content;
+}
+.start-page .checklist-h1::after,
+.setup-page .checklist-h1::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  width: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 12px 2px rgba(123, 140, 255, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  animation: flow-title-scan 0.9s cubic-bezier(.45,.05,.55,.95) 0.2s both;
+}
+@keyframes flow-title-scan {
+  0% { left: 0; opacity: 0; }
+  12%, 85% { opacity: 1; }
+  100% { left: calc(100% + 6px); opacity: 0; }
+}
+
+/* ---------- Shared: primary button ---------- */
+.start-page .checklist-btn-primary,
+.setup-page .checklist-btn-primary {
+  position: relative;
+  overflow: hidden;
+  min-height: 46px;
+  letter-spacing: 0.04em;
+  transition: background 0.15s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+.start-page .checklist-btn-primary:not(:disabled):hover,
+.setup-page .checklist-btn-primary:not(:disabled):hover {
+  background: #ffffff;
+  box-shadow: 0 8px 24px -10px rgba(237, 237, 239, 0.45);
+}
+.start-page .checklist-btn-primary:not(:disabled):active,
+.setup-page .checklist-btn-primary:not(:disabled):active { transform: scale(0.98); }
+/* while Suri is working, a scan line runs across the button */
+.start-page .checklist-btn-primary:disabled::after,
+.setup-page .checklist-btn-primary:disabled::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -30%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(123, 140, 255, 0.35), transparent);
+  animation: flow-btn-scan 1.2s ease-in-out infinite;
+}
+@keyframes flow-btn-scan {
+  to { left: 100%; }
+}
+.setup-page .checklist-btn-secondary {
+  min-height: 44px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.setup-page .checklist-btn-secondary:not(:disabled):hover {
+  border-color: var(--text-3);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* =========================================================
+   /start
+   ========================================================= */
+.start-page { counter-reset: flow-proc; }
+.start-page .start-row {
+  gap: 14px;
+  padding: 16px 18px;
+  transition: transform 0.25s cubic-bezier(.2,.7,.2,1), background 0.2s ease, border-color 0.2s ease, box-shadow 0.25s ease;
+}
+.start-page .start-row:not(.start-row--setup) { counter-increment: flow-proc; }
+.start-page .start-row:hover {
+  transform: translateY(-2px);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8);
+}
+.start-page .start-row:active { transform: scale(0.99); }
+
+/* square marker instead of a round radio */
+.start-page .start-radio-mark {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1.5px solid var(--text-3);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.2s ease;
+}
+.start-page .start-row:hover .start-radio-mark { border-color: var(--text-2); }
+.start-page .start-row--selected .start-radio-mark {
+  background: var(--match);
+  border-color: var(--match);
+  box-shadow: 0 0 10px rgba(127, 214, 166, 0.45);
+}
+
+/* "PROCESS 01" label above each name */
+.start-page .start-row:not(.start-row--setup) .start-row-main::before {
+  content: "PROCESS " counter(flow-proc, decimal-leading-zero);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  margin-bottom: 3px;
+}
+
+/* selected row: green edge, soft glow, tag on the right */
+.start-page .start-row--selected {
+  background: var(--surface);
+  border-color: rgba(127, 214, 166, 0.45);
+  box-shadow: 0 0 0 1px rgba(127, 214, 166, 0.12), 0 0 28px -10px rgba(127, 214, 166, 0.35);
+}
+.start-page .start-row--selected:hover { border-color: rgba(127, 214, 166, 0.6); }
+.start-page .start-row--selected .start-row-main::before { color: var(--match); }
+.start-page .start-row--selected::after {
+  content: "✓ SELECTED";
+  flex: none;
+  margin-left: auto;
+  padding: 3px 7px;
+  border: 1px solid #1f4a33;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--match);
+  animation: flow-tag-in 0.25s ease both;
+}
+@keyframes flow-tag-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* set up your own: square plus that turns on hover */
+.start-page .start-setup-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  transition: transform 0.25s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.start-page .start-row--setup:hover {
+  border-color: var(--text-3);
+}
+.start-page .start-row--setup:hover .start-setup-mark {
+  transform: rotate(90deg);
+  border-color: var(--text);
+  color: var(--text);
+}
+.start-page .start-row--setup::after {
+  content: "→";
+  flex: none;
+  margin-left: auto;
+  font-family: var(--font-jetbrains-mono), monospace;
+  color: var(--text-3);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.start-page .start-row--setup:hover::after { transform: translateX(3px); color: var(--text); }
+
+/* =========================================================
+   /setup
+   ========================================================= */
+.setup-page { counter-reset: flow-doc flow-check; }
+
+/* description box */
+.setup-page .setup-textarea {
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease;
+}
+.setup-page .setup-textarea:hover { border-color: var(--text-3); }
+.setup-page .setup-textarea:focus {
+  outline: none;
+  border-color: rgba(123, 140, 255, 0.7);
+  background: #121317;
+  box-shadow: 0 0 0 3px rgba(123, 140, 255, 0.14), 0 0 30px -10px rgba(123, 140, 255, 0.4);
+}
+.setup-page .setup-hint {
+  padding-left: 10px;
+  border-left: 1px solid var(--line-strong);
+}
+
+/* work log */
+.setup-page .setup-log {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(20, 21, 24, 0.6);
+}
+
+/* Suri asks for more detail: the agentic moment, make it stand out */
+.setup-page .setup-needs-more {
+  position: relative;
+  border-color: rgba(240, 196, 106, 0.45);
+  box-shadow: 0 0 32px -12px rgba(240, 196, 106, 0.35);
+  animation: flow-card-in 0.35s cubic-bezier(.2,.7,.2,1) both;
+}
+.setup-page .setup-needs-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.setup-page .setup-needs-label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--check);
+  animation: flow-ask-pulse 1.6s ease-in-out infinite;
+}
+@keyframes flow-ask-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 196, 106, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(240, 196, 106, 0); }
+}
+@keyframes flow-card-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* drafted cards: lift on hover, manifest labels */
+.setup-page .setup-doc-card,
+.setup-page .setup-check-card,
+.setup-page .setup-requirement-card,
+.setup-page .setup-not-checked {
+  position: relative;
+  animation: flow-card-in 0.35s cubic-bezier(.2,.7,.2,1) both;
+  transition: transform 0.25s cubic-bezier(.2,.7,.2,1), border-color 0.2s ease, box-shadow 0.25s ease;
+}
+.setup-page .setup-doc-card:hover,
+.setup-page .setup-check-card:hover,
+.setup-page .setup-requirement-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+  box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.8);
+}
+.setup-page .setup-doc-card { counter-increment: flow-doc; padding-top: 38px; }
+.setup-page .profile-label + .setup-doc-card { margin-top: 14px; }
+.setup-page .setup-doc-card::before {
+  content: "DOC-" counter(flow-doc, decimal-leading-zero);
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  padding-left: 15px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  background: linear-gradient(var(--text-2), var(--text-2)) left center / 7px 7px no-repeat;
+}
+
+.setup-page .setup-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--match);
+}
+.setup-page .setup-check-label::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  background: var(--match);
+}
+.setup-page .setup-check-card:hover { border-color: rgba(127, 214, 166, 0.35); }
+
+.setup-page .setup-requirement-card { border-color: rgba(240, 196, 106, 0.25); }
+.setup-page .setup-requirement-card .setup-check-label { color: var(--check); }
+.setup-page .setup-requirement-card .setup-check-label::before { background: var(--check); }
+
+/* check by hand: an amber scan frame Suri can't read inside,
+   and empty squares a person ticks (Suri's own checks are filled squares) */
+.setup-page .setup-not-checked {
+  --a: rgba(240, 196, 106, 0.85);
+  padding: 20px 22px;
+  border: 1px dashed rgba(240, 196, 106, 0.35);
+  background:
+    linear-gradient(var(--a), var(--a)) top left / 14px 1.5px,
+    linear-gradient(var(--a), var(--a)) top left / 1.5px 14px,
+    linear-gradient(var(--a), var(--a)) top right / 14px 1.5px,
+    linear-gradient(var(--a), var(--a)) top right / 1.5px 14px,
+    linear-gradient(var(--a), var(--a)) bottom left / 14px 1.5px,
+    linear-gradient(var(--a), var(--a)) bottom left / 1.5px 14px,
+    linear-gradient(var(--a), var(--a)) bottom right / 14px 1.5px,
+    linear-gradient(var(--a), var(--a)) bottom right / 1.5px 14px,
+    repeating-linear-gradient(-45deg, rgba(240, 196, 106, 0.035) 0 6px, transparent 6px 12px),
+    var(--surface);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+}
+.setup-page .setup-not-checked-title {
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+.setup-page .setup-not-checked-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+.setup-page .setup-not-checked-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.setup-page .setup-not-checked-list li::before {
+  content: "";
+  flex: none;
+  width: 11px;
+  height: 11px;
+  margin-top: 4px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--check);
+}
+
+/* small text buttons */
+.setup-page .setup-text-btn { transition: color 0.15s ease; }
+.setup-page .setup-text-btn:hover { color: var(--mismatch); }
+
+/* ---------- /setup spacing: one rhythm (8 / 12 / 16 / 24 / 36) ---------- */
+.setup-page .setup-intro { gap: 10px; }
+.setup-page .landing-section-head {
+  margin-top: 36px !important;
+  margin-bottom: 18px;
+}
+.setup-page .setup-intro + .landing-section-head { margin-top: 28px !important; }
+.setup-page .profile-label { gap: 10px; }
+.setup-page .profile-label-text { line-height: 1.4; }
+.setup-page .setup-hint { margin-top: 2px; line-height: 1.7; }
+.setup-page .profile-label + .checklist-btn-primary,
+.setup-page .profile-label + .checklist-btn-secondary { margin-top: 20px !important; }
+.setup-page .checklist-msg { margin-top: 16px; }
+.setup-page .setup-log { margin-top: 24px; }
+.setup-page .setup-log .checklist-log-list { margin-top: 12px; }
+.setup-page .setup-needs-more { margin-top: 20px; padding: 20px 22px; }
+.setup-page .setup-needs-hint { margin-top: 8px; }
+
+/* cards: same padding and gaps everywhere */
+.setup-page .setup-doc-card,
+.setup-page .setup-check-card,
+.setup-page .setup-requirement-card {
+  padding: 20px 22px;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.setup-page .setup-doc-card { padding-top: 44px; }
+.setup-page .setup-doc-card::before { top: 20px; left: 22px; }
+.setup-page .profile-label + .setup-doc-card { margin-top: 20px; }
+.setup-page .setup-field-row {
+  margin-top: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  gap: 8px;
+}
+.setup-page .setup-check-text { line-height: 1.55; }
+.setup-page .setup-check-card .profile-label,
+.setup-page .setup-requirement-card .profile-label { margin-top: 2px; }
+.setup-page .setup-check-card .checklist-foot {
+  margin: 0;
+  padding-left: 10px;
+  border-left: 1px solid var(--line-strong);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-3);
+}
+.setup-page .setup-text-btn { padding: 6px 0 0; }
+.setup-page .setup-not-checked { margin: 8px 0 0; }
+.setup-page .setup-not-checked + p.mono { margin-top: 24px !important; }
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .start-page .checklist-h1::after,
+  .setup-page .checklist-h1::after,
+  .start-page .checklist-btn-primary:disabled::after,
+  .setup-page .checklist-btn-primary:disabled::after,
+  .setup-page .setup-needs-label::before { animation: none; }
+  .start-page .start-row--selected::after,
+  .setup-page .setup-needs-more,
+  .setup-page .setup-doc-card,
+  .setup-page .setup-check-card,
+  .setup-page .setup-requirement-card,
+  .setup-page .setup-not-checked { animation: none; }
+  .start-page .start-row,
+  .setup-page .setup-doc-card,
+  .setup-page .setup-check-card,
+  .setup-page .setup-requirement-card { transition: none; }
+  .start-page .start-row:hover,
+  .setup-page .setup-doc-card:hover,
+  .setup-page .setup-check-card:hover,
+  .setup-page .setup-requirement-card:hover { transform: none; }
+}

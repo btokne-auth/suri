@@ -4,6 +4,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import SuriHeader from '../components/SuriHeader.js';
+import '../flow-polish.css';
 const EXAMPLE = 'Barangay clearance: valid ID + proof of billing. Names match. Address in Barangay Baybayin. Bill from the last 3 months.';
 function docIdOf(e) { return (e && (e.reuse || e.id)) || ''; }
 function builtinLabel(id) {
