@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v7 (hand-written, do not edit by AI)
+   Suri — landing polish v8 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -1115,6 +1115,34 @@
   width: fit-content;
 }
 .landing-sidebar-github:hover { color: #ffffff; }
+
+/* ---------- 6) Name meaning next to the title ---------- */
+.landing-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 18px;
+}
+.landing-meaning {
+  margin: 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-left: 14px;
+  border-left: 1px solid var(--line-strong);
+  font-family: var(--font-jetbrains-mono), monospace;
+}
+.landing-meaning-word {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-2);
+}
+.landing-meaning-def {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
 
 /* ---------- Reduced motion: final states, no movement ---------- */
 @media (prefers-reduced-motion: reduce) {

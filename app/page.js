@@ -75,7 +75,13 @@ export default function Home() {
                 <HeroScan />
               </div>
               <div className="landing-hero-copy">
-                <h1 className="landing-title">Suri</h1>
+                <div className="landing-title-row">
+                  <h1 className="landing-title">Suri</h1>
+                  <p className="landing-meaning">
+                    <span className="landing-meaning-word">suri</span>
+                    <span className="landing-meaning-def">Filipino, &ldquo;to examine&rdquo;</span>
+                  </p>
+                </div>
                 <p className="landing-copy">
                   Check your papers before the office does. Take a photo of each document. Suri reads it, checks it against your
                   other papers and the office&apos;s rules, and tells you what to fix.
