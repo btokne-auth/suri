@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — /start and /setup polish v2 (hand-written, do not edit by AI)
+   Suri — /start and /setup polish v3 (hand-written, do not edit by AI)
    Looks only. Every rule is scoped to .start-page or .setup-page,
    so /profile and the checklist are not affected.
    ========================================================= */
@@ -283,28 +283,18 @@
 .setup-page .setup-requirement-card .setup-check-label { color: var(--check); }
 .setup-page .setup-requirement-card .setup-check-label::before { background: var(--check); }
 
-/* check by hand: an amber scan frame Suri can't read inside,
-   and empty squares a person ticks (Suri's own checks are filled squares) */
+/* check by hand: a plain card like the others.
+   Empty squares = a person ticks these (Suri's own checks use filled squares). */
 .setup-page .setup-not-checked {
-  --a: rgba(240, 196, 106, 0.85);
   padding: 20px 22px;
-  border: 1px dashed rgba(240, 196, 106, 0.35);
-  background:
-    linear-gradient(var(--a), var(--a)) top left / 14px 1.5px,
-    linear-gradient(var(--a), var(--a)) top left / 1.5px 14px,
-    linear-gradient(var(--a), var(--a)) top right / 14px 1.5px,
-    linear-gradient(var(--a), var(--a)) top right / 1.5px 14px,
-    linear-gradient(var(--a), var(--a)) bottom left / 14px 1.5px,
-    linear-gradient(var(--a), var(--a)) bottom left / 1.5px 14px,
-    linear-gradient(var(--a), var(--a)) bottom right / 14px 1.5px,
-    linear-gradient(var(--a), var(--a)) bottom right / 1.5px 14px,
-    repeating-linear-gradient(-45deg, rgba(240, 196, 106, 0.035) 0 6px, transparent 6px 12px),
-    var(--surface);
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat, no-repeat;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
 }
 .setup-page .setup-not-checked-title {
   margin: 0 0 14px;
   line-height: 1.6;
+  color: var(--text-2);
 }
 .setup-page .setup-not-checked-list {
   list-style: none;
@@ -327,7 +317,7 @@
   height: 11px;
   margin-top: 4px;
   box-sizing: border-box;
-  border: 1.5px solid var(--check);
+  border: 1.5px solid var(--text-3);
 }
 
 /* small text buttons */

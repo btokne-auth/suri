@@ -1,5 +1,5 @@
 /* =========================================================
-   Suri — landing polish v10 (hand-written, do not edit by AI)
+   Suri — landing polish v11 (hand-written, do not edit by AI)
    1) stats: each cell has its own hover
       - cell 1: bars refill, the gap over OCR lights up
       - cell 2: 179 field squares light up in a wave
@@ -1243,6 +1243,61 @@
   .landing-title-row:hover .landing-meaning-word::before,
   .landing-title-row:hover .landing-meaning-def::before { animation: none; }
   .landing-title-row:hover .landing-meaning::after { animation: none; clip-path: none; }
+}
+
+/* ---------- 7) Built by (sidebar, and footer on phones) ---------- */
+.landing-built {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.landing-built-label {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+.landing-built-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.landing-built-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+}
+.landing-built-links a {
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.landing-built-links a:hover { color: #ffffff; }
+.landing-built--phone { display: none; }
+
+/* desktop: the sidebar stays in view while the page scrolls,
+   so the links are always visible (the divider line moves to the main column) */
+@media (min-width: 769px) {
+  /* overflow-x: hidden on html/body breaks sticky; clip hides sideways overflow the same way without breaking it */
+  html:has(.landing-wrap),
+  html:has(.landing-wrap) body { overflow-x: clip; }
+  .landing-sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    align-self: flex-start;
+    border-right: 0;
+    overflow-y: auto;
+  }
+  .landing-main { border-left: 1px solid var(--line); }
+}
+@media (max-width: 768px) {
+  .landing-built--phone { display: flex; border-bottom: 0; }
 }
 
 /* ---------- Reduced motion: final states, no movement ---------- */
