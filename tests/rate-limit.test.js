@@ -11,8 +11,8 @@ function loadRateLimit() {
   src = src.replace(/import\s+\{\s*createHash\s*\}\s+from\s+[\"']node:crypto[\"'];\s*\n/, 'const { createHash } = require("node:crypto");\n');
   // Convert exported consts to local consts + exports
   // Keep alias lines as local consts first
-  src = src.replace(/export\s+const\s+UPLOADS_PER_VISITOR_PER_HOUR\s*=\s*10;/, 'const UPLOADS_PER_VISITOR_PER_HOUR = 10; module.exports.UPLOADS_PER_VISITOR_PER_HOUR = UPLOADS_PER_VISITOR_PER_HOUR;');
-  src = src.replace(/export\s+const\s+READS_GLOBAL_PER_DAY\s*=\s*200;/, 'const READS_GLOBAL_PER_DAY = 200; module.exports.READS_GLOBAL_PER_DAY = READS_GLOBAL_PER_DAY;');
+  src = src.replace(/export\s+const\s+UPLOADS_PER_VISITOR_PER_HOUR\s*=\s*(\d+);/, 'const UPLOADS_PER_VISITOR_PER_HOUR = $1; module.exports.UPLOADS_PER_VISITOR_PER_HOUR = UPLOADS_PER_VISITOR_PER_HOUR;');
+  src = src.replace(/export\s+const\s+READS_GLOBAL_PER_DAY\s*=\s*(\d+);/, 'const READS_GLOBAL_PER_DAY = $1; module.exports.READS_GLOBAL_PER_DAY = READS_GLOBAL_PER_DAY;');
   src = src.replace(/export\s+const\s+SESSIONS_PER_IP_PER_HOUR\s*=\s*10;/, 'const SESSIONS_PER_IP_PER_HOUR = 10; module.exports.SESSIONS_PER_IP_PER_HOUR = SESSIONS_PER_IP_PER_HOUR;');
   src = src.replace(/export\s+const\s+SESSIONS_PER_IP\s*=\s*SESSIONS_PER_IP_PER_HOUR;/, 'const SESSIONS_PER_IP = SESSIONS_PER_IP_PER_HOUR; module.exports.SESSIONS_PER_IP = SESSIONS_PER_IP; module.exports.SESSIONS_PER_IP_PER_HOUR = SESSIONS_PER_IP_PER_HOUR;');
   src = src.replace(/export\s+const\s+UPLOADS_PER_IP_PER_HOUR\s*=\s*60;/, 'const UPLOADS_PER_IP_PER_HOUR = 60; module.exports.UPLOADS_PER_IP_PER_HOUR = UPLOADS_PER_IP_PER_HOUR;');
@@ -82,7 +82,7 @@ describe('lib/rate-limit helpers', () => {
     assert.equal(rl.UPLOADS_PER_IP, 60); assert.equal(rl.UPLOADS_PER_IP_PER_HOUR, 60);
     assert.equal(rl.RETRIES_PER_SLOT, 10); assert.equal(rl.RETRIES_PER_SLOT_PER_HOUR, 10);
     assert.equal(rl.ANSWERS_PER_VISITOR, 20); assert.equal(rl.ANSWERS_PER_VISITOR_PER_HOUR, 20);
-    assert.equal(rl.UPLOADS_PER_VISITOR_PER_HOUR, 10); assert.equal(rl.READS_GLOBAL_PER_DAY, 200);
+    assert.equal(rl.UPLOADS_PER_VISITOR_PER_HOUR, 30); assert.equal(rl.READS_GLOBAL_PER_DAY, 500);
   });
   it('.env.example RATE_LIMIT_SALT', () => {
     const env = fs.readFileSync(path.join(__dirname, '..', '.env.example'), 'utf8');
