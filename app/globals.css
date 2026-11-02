@@ -2025,7 +2025,7 @@ img {
 .reviewer-card-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px 10px;
   flex-wrap: wrap;
 }
 .reviewer-card-marker {
@@ -2052,7 +2052,9 @@ img {
   color: var(--text-2);
   overflow-wrap: break-word;
   flex-basis: 100%;
+  order: 1; /* tag stays on the title line, sentence goes under it */
 }
+
 .reviewer-card-tag {
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 10px;
@@ -2206,6 +2208,7 @@ img {
   color: var(--mismatch);
 }
 .reviewer-field-checks {
+  grid-column: 1 / -1;
   margin-left: 0;
   display: flex;
   flex-direction: column;
@@ -2298,6 +2301,31 @@ img {
 .reviewer-btn-reject {
   font-weight: 500;
   font-size: 15px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--mismatch);
+  border-radius: 8px;
+  padding: 0 20px;
+  min-height: 44px;
+  cursor: pointer;
+  font-family: var(--font-manrope), system-ui, sans-serif;
+}
+.reviewer-btn-reject:hover {
+  background: rgba(242, 154, 154, 0.08);
+}
+.reviewer-btn-reject:active {
+  transform: scale(0.98);
+}
+.reviewer-btn-reject:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.reviewer-btn-reject:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* moved out: these rules were stuck inside .reviewer-btn-reject (missing closing brace) */
 .checklist-msg--override {
   background: var(--surface);
   border: 1px solid var(--line-strong);
@@ -2310,28 +2338,63 @@ img {
   line-height: 1.5;
 }
 .reviewer-override {
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 16px 0;
+  padding: 16px;
   max-width: 100%;
   box-sizing: border-box;
   overflow-wrap: break-word;
+  background: var(--surface);
+  border: 1px solid rgba(240, 196, 106, 0.45);
+  border-radius: 12px;
+  box-shadow: 0 0 32px -12px rgba(240, 196, 106, 0.35);
 }
-.reviewer-override h3 {
-  margin: 0 0 6px;
+.reviewer-override-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--check);
+}
+.reviewer-override-label::before,
+.checklist-msg-label::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: var(--check);
+  animation: flow-ask-pulse 1.6s ease-in-out infinite;
+}
+.checklist-msg--done .checklist-msg-label::before {
+  background: var(--match);
+  animation: none;
+}
+.reviewer-override-rule {
+  margin: 0;
   font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
 }
-.reviewer-override p {
-  margin: 0 0 8px;
-  font-size: 14px;
+.reviewer-override-help {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-2);
-  overflow-wrap: break-word;
 }
-.reviewer-override label {
-  display: block;
+.reviewer-override-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   max-width: 100%;
+}
+.reviewer-override-field span {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
 }
 .reviewer-override input {
   display: block;
@@ -2340,17 +2403,90 @@ img {
   padding: 12px;
   min-height: 44px;
   font-size: 16px;
-  margin-top: 4px;
+  font-family: var(--font-manrope), system-ui, sans-serif;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--bg);
   color: var(--text);
   box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.reviewer-override input::placeholder { color: var(--text-3); }
+.reviewer-override input:hover { border-color: var(--text-3); }
 .reviewer-override input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-color: var(--accent);
+  outline: none;
+  border-color: rgba(240, 196, 106, 0.7);
+  box-shadow: 0 0 0 3px rgba(240, 196, 106, 0.14);
+}
+.reviewer-override-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.reviewer-override-count {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.reviewer-override-btn {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 196, 106, 0.55);
+  background: transparent;
+  color: var(--check);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.reviewer-override-btn:not(:disabled):hover { background: rgba(240, 196, 106, 0.1); }
+.reviewer-override-btn:not(:disabled):active { transform: scale(0.98); }
+.reviewer-override-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reviewer-override-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.checklist-msg--flag,
+.checklist-msg--done {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+.checklist-msg--flag {
+  border-color: rgba(240, 196, 106, 0.45);
+  box-shadow: 0 0 32px -12px rgba(240, 196, 106, 0.35);
+}
+.checklist-msg--done {
+  border-color: rgba(127, 214, 166, 0.35);
+}
+.checklist-msg--done .checklist-msg-label { color: var(--match); }
+.checklist-msg-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--check);
+}
+.checklist-msg-sub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.checklist-locked {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reviewer-override input,
+  .reviewer-override-btn { transition: none; }
+  .reviewer-override-label::before,
+  .checklist-msg-label::before { animation: none; }
 }
 .reviewer-ocr {
   margin-top: 16px;
@@ -2467,6 +2603,7 @@ img {
   align-items: flex-end;
   gap: 16px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 .reviewer-header-subtitle {
   font-size: 15px;
@@ -2481,7 +2618,7 @@ img {
   white-space: nowrap;
 }
 .reviewer-review-log {
-  margin-top: 16px;
+  margin-top: 20px;
   max-width: 100%;
   box-sizing: border-box;
   overflow-wrap: break-word;
@@ -2584,26 +2721,106 @@ img {
   color: var(--mismatch);
 }
 
-  color: var(--text);
+@keyframes flow-ask-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(240, 196, 106, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(240, 196, 106, 0); }
+}
+
+/* Reviewer card spacing: one rhythm (header -> body -> actions -> log) */
+.reviewer-card .rv-body { margin-top: 16px; }
+.reviewer-card .rv-photo-hint { margin-top: 10px; }
+.reviewer-card .reviewer-clarif-card { margin-top: 16px; }
+
+/* Reviewer card: tools under the photo, one decision strip at the bottom */
+.reviewer-card .rv-photo-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+}
+.reviewer-card .rv-photo-tools .rv-photo-hint { margin-top: 0; }
+.rv-photo-tool {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-2);
   background: transparent;
-  border: 1px solid var(--mismatch);
-  border-radius: 8px;
-  padding: 0 20px;
-  min-height: 44px;
+  border: 0;
+  padding: 2px 0;
+  min-height: 0;
   cursor: pointer;
-  font-family: var(--font-manrope), system-ui, sans-serif;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
-.reviewer-btn-reject:hover {
-  background: rgba(242, 154, 154, 0.08);
+.set-page .rv-photo-tool, .checklist-page .rv-photo-tool { min-height: 0; font-size: 10px; }
+.rv-photo-tool:hover { color: var(--text); }
+.rv-photo-tool:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rv-photo-tool:disabled { opacity: 0.5; cursor: wait; }
+.rv-decision-strip {
+  margin: 20px -16px -16px;
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.012);
 }
-.reviewer-btn-reject:active {
-  transform: scale(0.98);
+.rv-decision-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
-.reviewer-btn-reject:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.rv-decision-label {
+  margin-right: auto;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-2);
 }
-.reviewer-btn-reject:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.rv-decision-label i { font-style: normal; color: var(--text-3); }
+.rv-decision-strip .rv-btn.is-dim { opacity: 0.55; }
+.rv-decision-strip .rv-btn--approve.is-on { background: rgba(127, 214, 166, 0.14); border-color: var(--match); }
+.rv-decision-strip .rv-btn--reject.is-on { background: rgba(242, 154, 154, 0.12); border-color: var(--mismatch); }
+.rv-timeline {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0 0 0 16px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rv-timeline li {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+.rv-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--surface);
+  background: var(--text-3);
+}
+.rv-timeline li.is-match::before { background: var(--match); }
+.rv-timeline li.is-mismatch::before { background: var(--mismatch); }
+.rv-timeline li.is-check::before { background: var(--check); }
+.rv-timeline time {
+  flex: none;
+  width: 64px;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  color: var(--text-3);
+}
+@media (max-width: 480px) {
+  .rv-decision-label { flex-basis: 100%; }
 }

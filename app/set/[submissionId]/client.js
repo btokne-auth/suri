@@ -518,13 +518,14 @@ export default function SetClient() {
     const checks = Array.isArray(docChecks) ? docChecks : (row && row.document_id ? checksFor(row.document_id) : []);
     if (!row || !row.document_id) return { text: '+ UPLOAD', cls: 'checklist-tag-upload', markerBg: 'var(--text-2)' };
     if (row.status === 'uploaded' || row.status === 'reading') return { text: 'READING…', cls: 'checklist-tag-reading', markerBg: 'var(--accent)' };
+    // a reviewer's decision wins over Suri's own tag
+    if (row.status === 'approved') return { text: '✓ APPROVED', cls: 'checklist-tag-ready', markerBg: 'var(--match)' };
+    if (row.status === 'rejected') return { text: '✕ REJECTED', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
     if (row.action === 'ready') return { text: '✓ READY', cls: 'checklist-tag-ready', markerBg: 'var(--match)' };
     if (row.action === 'please confirm' || row.action === 'answered, a person will decide') return { text: '▪ CONFIRM', cls: 'checklist-tag-confirm', markerBg: 'var(--check)' };
     if (row.status === 'retake_needed') return { text: '↻ RETAKE', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
     if (row.status === 'wrong_document') return { text: '✕ WRONG DOCUMENT', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
     if (row.status === 'error') return { text: '↻ TRY AGAIN', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
-    if (row.status === 'approved') return { text: '✓ APPROVED', cls: 'checklist-tag-ready', markerBg: 'var(--match)' };
-    if (row.status === 'rejected') return { text: '✕ REJECTED', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
     const hasMismatch = checks.some(function (c) { return c && (c.result === 'mismatch' || c.result === 'invalid'); });
     if (hasMismatch) return { text: '✕ MISMATCH', cls: 'checklist-tag-fix', markerBg: 'var(--mismatch)' };
     return { text: '▪ CONFIRM', cls: 'checklist-tag-confirm', markerBg: 'var(--check)' };
@@ -543,8 +544,13 @@ export default function SetClient() {
     const s = String(reason || '');
     return displayDocLabel(s.replace(' (form 138 style)', '')) || s;
   }
+  // The requirement override is stored as an 'approve' row with the note in new_value.
+  // It is not a document approval, so it is labeled and counted separately.
+  function isOverrideReview(r) {
+    return !!(r && r.action === 'approve' && !r.field_key && r.new_value);
+  }
   function reviewerDecisionText(docId, reviews) {
-    const list = (reviews || []).filter(function (r) { return r && r.document_id === docId && (r.action === 'approve' || r.action === 'reject'); });
+    const list = (reviews || []).filter(function (r) { return r && r.document_id === docId && !isOverrideReview(r) && (r.action === 'approve' || r.action === 'reject'); });
     if (!list.length) return null;
     const last = list[list.length - 1];
     const t = formatManilaTime(last.created_at);
@@ -608,12 +614,12 @@ export default function SetClient() {
     else if (t === 'wrong_document') base = 'Looks like a different document \u00b7 ' + label;
     else if (t === 'reading_failed') base = 'Couldn\'t finish reading \u00b7 ' + label;
     else if (t === 'requirement_check') base = m || 'Suri updated your checklist.';
-    else if (t === 'requirement_override') base = 'A reviewer overrode the requirement';
+    else if (t === 'requirement_override') base = 'Overrode the requirement';
     else if (t === 'check_failed') base = 'A check couldn\'t run';
     else if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) base = 'Suri skipped a question';
-    else if (t === 'review_approve' || t.includes('review_approve')) base = 'A reviewer approved \u00b7 ' + label;
-    else if (t === 'review_reject' || t.includes('review_reject')) base = 'A reviewer rejected \u00b7 ' + label;
-    else if (t === 'review_correct' || t.includes('review_correct')) base = 'A reviewer corrected \u00b7 ' + label;
+    else if (t === 'review_approve' || t.includes('review_approve')) base = 'Approved \u00b7 ' + label;
+    else if (t === 'review_reject' || t.includes('review_reject')) base = 'Rejected \u00b7 ' + label;
+    else if (t === 'review_correct' || t.includes('review_correct')) base = 'Corrected \u00b7 ' + label;
     else if (t === 'reading_started' || (t.includes('reading') && t.includes('start'))) base = 'Reading \u00b7 ' + label;
     else if (t === 'reading_finished' || t === 'reading' || t.includes('reading_finish')) {
       const num = (m.match(/\d+/) || [])[0];
@@ -702,7 +708,7 @@ export default function SetClient() {
   let readyN = 0, confirmN = 0, fixN = 0;
   for (const r of rowsForProgress) {
     const tg = getTag(r, r.document_id ? checksFor(r.document_id) : []);
-    if (tg.text === '✓ READY') readyN += 1;
+    if (tg.text === '✓ READY' || tg.text === '✓ APPROVED') readyN += 1;
     else if (tg.text === '▪ CONFIRM') confirmN += 1;
     else if (['↻ RETAKE', '✕ WRONG DOCUMENT', '↻ TRY AGAIN', '✕ MISMATCH', '✕ REJECTED'].includes(tg.text)) fixN += 1;
   }
@@ -725,16 +731,7 @@ export default function SetClient() {
         <h1 className="checklist-h1 mono">{data.process.label}</h1>
       </div>
       {showMsg && (<p className="checklist-msg"><b>{msg}</b></p>)}
-      {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<p className="checklist-msg"><b>{data.process.requirement_message}</b> A person still decides.</p>)}
-      {data.process.override_note && (<p className="checklist-msg checklist-msg--override"><b>Overridden:</b> {data.process.override_note}</p>)}
-      {view === 'reviewer' && data.submission.status === 'requirement_not_met' && (
-        <div className="reviewer-override">
-          <h3>Requirement override</h3>
-          <p>A flag, a person decides. Add a short note to unlock the other documents.</p>
-          <label>Note: <input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} maxLength={200} /></label>
-          <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override'} className="reviewer-btn-approve">{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
-        </div>
-      )}
+      {data.submission.status === 'requirement_not_met' && data.process.requirement_message && (<div className="checklist-msg checklist-msg--flag"><span className="checklist-msg-label mono">FLAGGED · A PERSON DECIDES</span><b>{data.process.requirement_message}</b><span className="checklist-msg-sub">Your other papers are locked until a reviewer looks at this.</span></div>)}
       <div key={view} className="checklist-view">
         <div className="set-wrap" style={{ marginTop: 24 }}>
           {view === 'applicant' && (
@@ -759,7 +756,7 @@ export default function SetClient() {
                 <div className="checklist-row-main">
                   <span className="checklist-docid mono">DOC-0{idx + 1}</span>
                   <span className="checklist-docname">{displayDocLabel(row.label)}</span>
-                  <span className="checklist-sentence">{String(row.reason || '').replace(/\s*\((?:[^)]*\bstyle|sample[^)]*)\)/gi, '')}</span>
+                  <span className="checklist-sentence">{row.locked ? (<span className="checklist-locked">Locked · waiting for a reviewer decision</span>) : String(row.reason || '').replace(/\s*\((?:[^)]*\bstyle|sample[^)]*)\)/gi, '')}</span>
                   {isReading ? (
                     <>
                       <div className="checklist-skeleton" aria-hidden="true">
@@ -785,7 +782,7 @@ export default function SetClient() {
                               return (<div key={'a-' + i} className={'checklist-checkline ' + tone}><b>{c.result}</b> · {fieldLabel}{sameSuffix}. {baseReason}</div>);
                             })}
                             {passing.length > 0 && (
-                              <button type="button" className="checklist-checks-toggle" aria-expanded={isExpanded} onClick={function () { setExpandedChecks(function (p) { return Object.assign({}, p, { [expKey]: !p[expKey] }); }); }}>{'✓ ' + passing.length + ' checks passed'}</button>
+                              <button type="button" className="checklist-checks-toggle" aria-expanded={isExpanded} onClick={function () { setExpandedChecks(function (p) { return Object.assign({}, p, { [expKey]: !p[expKey] }); }); }}>{'✓ ' + passing.length + (passing.length === 1 ? ' check passed' : ' checks passed')}</button>
                             )}
                             {isExpanded && passing.filter(function (c) { return (cleanReason(c.reason) || '').trim() !== (row.reason || '').trim(); }).map(function (c, i) {
                               const tone = 'checklist-checkline-match';
@@ -846,6 +843,18 @@ export default function SetClient() {
             <p className="reviewer-header-subtitle">Review each document and decide.</p>
             {data.submission.status === 'requirement_not_met' && (<span className="reviewer-header-badge">● needs a decision</span>)}
           </div>
+          {data.submission.status === 'requirement_not_met' && (
+            <div className="reviewer-override">
+              <span className="reviewer-override-label">REVIEWER DECISION · REQUIREMENT</span>
+              <p className="reviewer-override-rule">{data.process.requirement_message || 'A requirement was not met.'}</p>
+              <p className="reviewer-override-help">Suri flagged this. Check the papers below. If the applicant should still continue, write why and override. This unlocks the other papers.</p>
+              <label className="reviewer-override-field"><span>NOTE</span><input value={overrideNote} onChange={(e) => setOverrideNote(e.target.value)} maxLength={200} placeholder="Why the applicant can continue" /></label>
+              <div className="reviewer-override-foot">
+                <span className="reviewer-override-count">{overrideNote.length}/200</span>
+                <button type="button" onClick={sendOverride} disabled={reviewBusy === 'override' || !overrideNote.trim()} className="reviewer-override-btn">{reviewBusy === 'override' ? 'Saving...' : 'Override requirement'}</button>
+              </div>
+            </div>
+          )}
           {(data.rows || []).map(function (row, idx) {
             const docFields = row.document_id ? (fieldsMap[row.document_id] || []) : [];
             const docChecks = row.document_id ? checksAll.filter((c) => c.document_id === row.document_id) : [];
@@ -857,17 +866,15 @@ export default function SetClient() {
                 const tag = getTag(row, docChecks);
                 const tagMap = { 'checklist-tag-upload': 'reviewer-tag-upload', 'checklist-tag-reading': 'reviewer-tag-reading', 'checklist-tag-ready': 'reviewer-tag-ready', 'checklist-tag-confirm': 'reviewer-tag-confirm', 'checklist-tag-fix': 'reviewer-tag-fix' };
                 const tagCls = tagMap[tag.cls] || tag.cls;
-                const decision = reviewerDecisionText(row.document_id, reviewsAll);
                 return (
                   <>
                     <div className="reviewer-card-header">
                       <span className="reviewer-card-marker" style={{ background: tag.markerBg }} aria-hidden="true"></span>
                       <span className="reviewer-card-docid mono">DOC-0{idx + 1}</span>
                       <span className="reviewer-card-name">{displayDocLabel(row.label)}</span>
-                      <span className="reviewer-card-sentence">{plainReason(row.reason)}</span>
+                      {!(row.status === 'approved' || row.status === 'rejected') && (<span className="reviewer-card-sentence">{row.locked ? 'Locked · waiting for your decision above' : plainReason(row.reason)}</span>)}
                       <span className={'reviewer-card-tag ' + tagCls}>{tag.text}</span>
                     </div>
-                    {(row.status === 'approved' || row.status === 'rejected') && (function () { const reviews = reviewsAll.filter(function (r) { return r && r.document_id === row.document_id && (r.action === 'approve' || r.action === 'reject'); }); const last = reviews.length ? reviews[reviews.length - 1] : null; const t = last ? formatManilaTime(last.created_at) : ''; const approved = row.status === 'approved'; return (<span className={"rv-decision rv-decision--" + (approved ? "approved" : "rejected")}>{approved ? "✓ Approved by a reviewer" : "✕ Rejected by a reviewer"}{t ? " · " + t : ""}</span>); })()}
                   </>
                 );
               }()}
@@ -875,7 +882,7 @@ export default function SetClient() {
               {row.document_id && (
               <>
               <div className="rv-body">
-                <div className="rv-photo"><a href={imgUrls[row.document_id]} target="_blank" rel="noopener noreferrer"><img src={imgUrls[row.document_id]} alt={displayDocLabel(row.label) + " photo"} /></a><div className="rv-photo-hint">Click to open full size</div></div>
+                <div className="rv-photo"><a href={imgUrls[row.document_id]} target="_blank" rel="noopener noreferrer"><img src={imgUrls[row.document_id]} alt={displayDocLabel(row.label) + " photo"} /></a><div className="rv-photo-tools"><span className="rv-photo-hint">Click to open full size</span><button type="button" className="rv-photo-tool" onClick={() => { const st = ocrByDoc[row.document_id]?.status; if (st !== 'done' && st !== 'loading') handleOcrCompare(row.document_id, row.doc_type); setTimeout(function () { const el = document.getElementById('ocr-' + row.document_id); if (el) el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); }, 60); }}>{ocrByDoc[row.document_id]?.status === 'loading' ? 'Running plain OCR… ' + (ocrByDoc[row.document_id].progress || 0) + '% ↓' : ocrByDoc[row.document_id]?.status === 'done' ? '↓ See OCR comparison' : '⇄ Compare with plain OCR'}</button></div></div>
                 <div>
                   <div className="reviewer-fields">
                   {docFields.length === 0 && <p>(no fields read yet)</p>}
@@ -911,23 +918,8 @@ export default function SetClient() {
                   </div>
                 </div>
                 </div>
-                  {(row.clarifications || []).filter(function (cl) { return cl && cl.question; }).map(function (cl) {
-                    return (
-                      <div key={cl.id || cl.question} className="reviewer-clarif-card">
-                        <span className="reviewer-clarif-label">SURI ASKED</span>
-                        <p className="reviewer-clarif-q">{cl.question}</p>
-                        {cl.answer ? (<><div className="reviewer-clarif-divider"></div><span className="reviewer-clarif-label">APPLICANT ANSWERED</span><p className="reviewer-clarif-a">{cl.answer}</p></>) : null}
-                      </div>
-                    );
-                  })}
-                  <div className="rv-actions">
-                    <button className="rv-btn rv-btn--approve" onClick={() => reviewAction(row.document_id, 'approve')} disabled={reviewBusy === row.document_id + 'approve'}>✓ Approve</button>
-                    <button className="rv-btn rv-btn--reject" onClick={() => reviewAction(row.document_id, 'reject')} disabled={reviewBusy === row.document_id + 'reject'}>✕ Reject</button>
-                    <button className="rv-btn rv-btn--ghost" onClick={() => handleOcrCompare(row.document_id, row.doc_type)} disabled={ocrByDoc[row.document_id]?.status === 'loading'}>Compare with plain OCR</button>
-                    {docFeedback[row.document_id] && <p className="rv-feedback">{docFeedback[row.document_id].text}</p>}
-                  </div>
                   {ocrByDoc[row.document_id] && (
-                    <section className="rv-ocr">
+                    <section className="rv-ocr" id={'ocr-' + row.document_id}>
                       <div className="rv-ocr-head"><span className="rv-ocr-title">Plain OCR vs Suri</span><span className="rv-ocr-score">Suri read <b>{(function () { const fieldsForScore = fieldsMap[row.document_id] || []; return fieldsForScore.filter(function (f) { return f && !f.unreadable && f.value_text != null && String(f.value_text).trim() !== ''; }).length; })()}/{(fieldsMap[row.document_id] || []).length}</b> fields · Plain OCR found <b>{ocrByDoc[row.document_id].foundCount != null ? ocrByDoc[row.document_id].foundCount : ((ocrByDoc[row.document_id].perField || []).filter(function (x) { return x.found; }).length)}</b> of those values</span></div>
                       {ocrByDoc[row.document_id]?.status === 'loading' && (<div className="rv-ocr-loading">Running plain OCR… {ocrByDoc[row.document_id].progress}%</div>)}
                       {ocrByDoc[row.document_id]?.status === 'error' && (<p style={{ margin: '8px 0 0', fontSize: 14, color: 'var(--mismatch)', overflowWrap: 'break-word' }}>{ocrByDoc[row.document_id].error}</p>)}
@@ -970,18 +962,41 @@ export default function SetClient() {
                     )}
                     </section>
                   )}
-                  {docReviews.length > 0 && (
-                    <div className="reviewer-review-log">
-                      <h4>Review log</h4>
-                      <ol>
-                        {docReviews.map(function (r, i) {
-                          const t = formatManilaTime(r.created_at);
-                          const label = r.action === 'approve' ? 'Approved' : r.action === 'reject' ? 'Rejected' : r.action === 'correct' ? 'Corrected ' + humanFieldLabel(r.field_key) : r.action;
-                          return (<li key={i}>{label}{t ? ' · ' + t : ''}{r.action === 'correct' && (r.old_value || r.new_value) ? ' ' + (r.old_value || '(empty)') + ' → ' + (r.new_value || '(empty)') : ''}</li>);
-                        })}
-                      </ol>
-                    </div>
-                  )}
+                  {(row.clarifications || []).filter(function (cl) { return cl && cl.question; }).map(function (cl) {
+                    return (
+                      <div key={cl.id || cl.question} className="reviewer-clarif-card">
+                        <span className="reviewer-clarif-label">SURI ASKED</span>
+                        <p className="reviewer-clarif-q">{cl.question}</p>
+                        {cl.answer ? (<><div className="reviewer-clarif-divider"></div><span className="reviewer-clarif-label">APPLICANT ANSWERED</span><p className="reviewer-clarif-a">{cl.answer}</p></>) : null}
+                      </div>
+                    );
+                  })}
+                  {(function () {
+                    const decided = row.status === 'approved' ? 'approved' : row.status === 'rejected' ? 'rejected' : null;
+                    const lastDecision = reviewsAll.filter(function (r) { return r && r.document_id === row.document_id && !isOverrideReview(r) && r.action === (decided === 'approved' ? 'approve' : 'reject'); }).slice(-1)[0];
+                    const decidedAt = lastDecision ? formatManilaTime(lastDecision.created_at) : '';
+                    const sub = decided ? decided + (decidedAt ? ' ' + decidedAt : '') : 'waiting for you';
+                    return (
+                      <div className="rv-decision-strip">
+                        <div className="rv-decision-row">
+                          <span className="rv-decision-label">DECISION <i>· {sub}</i></span>
+                          <button className={'rv-btn rv-btn--reject' + (decided === 'rejected' ? ' is-on' : decided ? ' is-dim' : '')} onClick={() => reviewAction(row.document_id, 'reject')} disabled={reviewBusy === row.document_id + 'reject'}>✕ Reject</button>
+                          <button className={'rv-btn rv-btn--approve' + (decided === 'approved' ? ' is-on' : decided ? ' is-dim' : '')} onClick={() => reviewAction(row.document_id, 'approve')} disabled={reviewBusy === row.document_id + 'approve'}>✓ Approve</button>
+                        </div>
+                        {docFeedback[row.document_id] && <p className="rv-feedback">{docFeedback[row.document_id].text}</p>}
+                        {docReviews.length > 0 && (
+                          <ol className="rv-timeline">
+                            {docReviews.slice().reverse().map(function (r, i) {
+                              const t = formatManilaTime(r.created_at);
+                              const label = isOverrideReview(r) ? 'Overrode the requirement: \u201c' + r.new_value + '\u201d' : r.action === 'approve' ? 'Approved' : r.action === 'reject' ? 'Rejected' : r.action === 'correct' ? 'Corrected ' + humanFieldLabel(r.field_key) + ((r.old_value || r.new_value) ? ': ' + (r.old_value || '(empty)') + ' \u2192 ' + (r.new_value || '(empty)') : '') : r.action;
+                              const tone = isOverrideReview(r) ? 'is-check' : r.action === 'approve' ? 'is-match' : r.action === 'reject' ? 'is-mismatch' : '';
+                              return (<li key={i} className={tone}><time>{t}</time><span>{label}</span></li>);
+                            })}
+                          </ol>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
             </div>
