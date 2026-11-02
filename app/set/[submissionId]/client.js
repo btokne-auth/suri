@@ -601,7 +601,8 @@ export default function SetClient() {
     const label = docLabelForLog(w);
     const m = String(w.message || '');
     let base = '';
-    if (t === 'upload' || t.includes('upload')) base = 'Received \u00b7 ' + label;
+    if (t === 'suspicious_text') base = 'Found hidden instructions and ignored them \u00b7 ' + label;
+    else if (t === 'upload' || t.includes('upload')) base = 'Received \u00b7 ' + label;
     else if (t === 'reading_retry' || t.includes('reading_retry')) base = 'Reading again to double-check \u00b7 ' + label;
     else if (t === 'retake_needed' || t === 'retake') base = 'Asked for a clearer photo \u00b7 ' + label;
     else if (t === 'wrong_document') base = 'Looks like a different document \u00b7 ' + label;
@@ -664,6 +665,7 @@ export default function SetClient() {
     if (!w) return 'var(--text-3)';
     const t = String(w.step_type || '').toLowerCase();
     const m = String(w.message || '');
+    if (t === 'suspicious_text') return 'var(--mismatch)';
     if (t === 'upload' || t.includes('upload')) return 'var(--text-3)';
     if (t === 'reading_retry' || t.includes('reading_retry')) return 'var(--accent)';
     if (t === 'retake_needed') return 'var(--mismatch)';
