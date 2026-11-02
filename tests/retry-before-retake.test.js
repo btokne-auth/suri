@@ -182,12 +182,12 @@ describe('Step 9F client work log sentences + colors', () => {
     assert.ok(t.includes('Looks like a different document'), 'missing wrong_document sentence');
     assert.ok(t.includes("Couldn\\'t finish reading"), 'missing reading_failed sentence');
     assert.ok(t.includes('requirement_check'), 'missing requirement_check handling');
-    assert.ok(t.includes('A reviewer overrode the requirement'), 'missing requirement_override');
+    assert.ok(t.includes('Overrode the requirement'), 'missing requirement_override');
     assert.ok(t.includes("A check couldn\\'t run"), 'missing check_failed');
     assert.ok(t.includes('Suri skipped a question'), 'missing clarification_failed/skipped');
-    assert.ok(t.includes('A reviewer approved'), 'missing review_approve');
-    assert.ok(t.includes('A reviewer rejected'), 'missing review_reject');
-    assert.ok(t.includes('A reviewer corrected'), 'missing review_correct');
+    assert.ok(t.includes("'Approved \\u00b7 '"), 'missing review_approve');
+    assert.ok(t.includes("'Rejected \\u00b7 '"), 'missing review_reject');
+    assert.ok(t.includes("'Corrected \\u00b7 '"), 'missing review_correct');
     assert.ok(t.includes('Suri updated your checklist.'), 'missing fallback');
   });
 });
@@ -226,12 +226,12 @@ describe('Step 9F client logic behavior', () => {
       if (t === 'wrong_document') return 'Looks like a different document \u00b7 ' + label;
       if (t === 'reading_failed') return 'Couldn\'t finish reading \u00b7 ' + label;
       if (t === 'requirement_check') return m || 'Suri updated your checklist.';
-      if (t === 'requirement_override') return 'A reviewer overrode the requirement';
+      if (t === 'requirement_override') return 'Overrode the requirement';
       if (t === 'check_failed') return 'A check couldn\'t run';
       if (t === 'clarification_failed' || t === 'clarification_skipped_cap' || t.includes('clarification_failed') || t.includes('clarification_skipped')) return 'Suri skipped a question';
-      if (t === 'review_approve' || t.includes('review_approve')) return 'A reviewer approved \u00b7 ' + label;
-      if (t === 'review_reject' || t.includes('review_reject')) return 'A reviewer rejected \u00b7 ' + label;
-      if (t === 'review_correct' || t.includes('review_correct')) return 'A reviewer corrected \u00b7 ' + label;
+      if (t === 'review_approve' || t.includes('review_approve')) return 'Approved \u00b7 ' + label;
+      if (t === 'review_reject' || t.includes('review_reject')) return 'Rejected \u00b7 ' + label;
+      if (t === 'review_correct' || t.includes('review_correct')) return 'Corrected \u00b7 ' + label;
       return 'Suri updated your checklist.';
     }
     function logDotColor(w) {
@@ -259,16 +259,16 @@ describe('Step 9F client logic behavior', () => {
     assert.equal(workLogSentence({ step_type: 'requirement_check', message: 'Requirement passed.' }), 'Requirement passed.');
     assert.equal(logDotColor({ step_type: 'requirement_check', message: 'Requirement passed.' }), 'var(--match)');
     assert.equal(logDotColor({ step_type: 'requirement_check', message: 'Requirement not met.' }), 'var(--mismatch)');
-    assert.equal(workLogSentence({ step_type: 'requirement_override' }), 'A reviewer overrode the requirement');
+    assert.equal(workLogSentence({ step_type: 'requirement_override' }), 'Overrode the requirement');
     assert.equal(logDotColor({ step_type: 'requirement_override' }), 'var(--check)');
     assert.equal(workLogSentence({ step_type: 'check_failed' }), 'A check couldn\'t run');
     assert.equal(workLogSentence({ step_type: 'clarification_failed' }), 'Suri skipped a question');
     assert.equal(logDotColor({ step_type: 'clarification_failed' }), 'var(--text-3)');
-    assert.equal(workLogSentence({ step_type: 'review_approve' }), 'A reviewer approved \u00b7 Valid ID');
+    assert.equal(workLogSentence({ step_type: 'review_approve' }), 'Approved \u00b7 Valid ID');
     assert.equal(logDotColor({ step_type: 'review_approve' }), 'var(--match)');
-    assert.equal(workLogSentence({ step_type: 'review_reject' }), 'A reviewer rejected \u00b7 Valid ID');
+    assert.equal(workLogSentence({ step_type: 'review_reject' }), 'Rejected \u00b7 Valid ID');
     assert.equal(logDotColor({ step_type: 'review_reject' }), 'var(--mismatch)');
-    assert.equal(workLogSentence({ step_type: 'review_correct' }), 'A reviewer corrected \u00b7 Valid ID');
+    assert.equal(workLogSentence({ step_type: 'review_correct' }), 'Corrected \u00b7 Valid ID');
     assert.equal(logDotColor({ step_type: 'review_correct' }), 'var(--check)');
     assert.equal(workLogSentence({ step_type: 'unknown_xyz' }), 'Suri updated your checklist.');
     assert.equal(logDotColor({ step_type: 'unknown_xyz' }), 'var(--text-3)');
