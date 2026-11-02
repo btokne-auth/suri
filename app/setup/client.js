@@ -92,6 +92,63 @@ function removeField(draft, docIdx, key) {
   if (d.requirement && d.requirement.document === id && d.requirement.field === key) delete d.requirement;
   return d;
 }
+// Same rule on several papers (e.g. "Issue Date must not be in the future." on 4 papers)
+// shows as one card with a checklist of papers. Unticking a paper takes its check out of
+// the draft; ticking it again puts it back. Name and date matches stay one card each.
+function groupKey(c) {
+  if (!c) return 'x';
+  if (c.rule === 'filipino_name' || c.rule === 'same_date') return [c.rule, c.document, c.field, c.compare_to].join('|');
+  return [c.rule, c.field, c.value, c.months].join('|');
+}
+function orderKey(c) {
+  if (!c) return 'x';
+  if (c.rule === 'filipino_name' || c.rule === 'same_date') return [c.rule, c.document, c.field].join('|');
+  return [c.rule, c.field].join('|');
+}
+function groupChecks(draft, view, offChecks, keyOrder) {
+  const docLabel = {};
+  const docPos = {};
+  (draft.documents || []).forEach((e, i) => {
+    const id = docIdOf(e);
+    docLabel[id] = e.reuse ? builtinLabel(id) : (e.label || id);
+    docPos[id] = i;
+  });
+  const nameOf = (c) => docLabel[c && c.document] || String((c && c.document) || 'document');
+  const groups = [];
+  const byKey = {};
+  function add(c, item, text, pos) {
+    const key = groupKey(c);
+    if (!byKey[key]) {
+      byKey[key] = { key, text, check: c, items: [], pos };
+      groups.push(byKey[key]);
+    }
+    const g = byKey[key];
+    if (item.on && !g.hasOn) { g.check = c; g.text = text; g.hasOn = true; }
+    g.pos = Math.min(g.pos, pos);
+    g.items.push(item);
+  }
+  (draft.checks || []).forEach((c, ci) => {
+    const text = view && view.checks && view.checks[ci] ? view.checks[ci] : 'Check this document.';
+    add(c, { on: true, index: ci, doc: nameOf(c), docId: c && c.document }, text, ci);
+  });
+  (offChecks || []).forEach((o, oi) => {
+    add(o.check, { on: false, offIndex: oi, doc: nameOf(o.check), docId: o.check && o.check.document }, o.text, o.pos);
+  });
+  // cards stay where they first appeared, even when every paper is unticked
+  const rank = (g) => {
+    const i = (keyOrder || []).indexOf(orderKey(g.check));
+    return i === -1 ? 1000 + g.pos : i;
+  };
+  groups.sort((a, b) => rank(a) - rank(b));
+  // papers keep the same order whether ticked or not
+  for (const g of groups) g.items.sort((a, b) => (docPos[a.docId] ?? 99) - (docPos[b.docId] ?? 99));
+  return groups;
+}
+function setGroupField(draft, idxs, key, value) {
+  const d = clone(draft);
+  for (const i of idxs) if (d.checks[i]) d.checks[i][key] = value;
+  return d;
+}
 function removeCheck(draft, idx) {
   const d = clone(draft);
   d.checks = (d.checks || []).filter((_, i) => i !== idx);
@@ -106,12 +163,33 @@ export default function SetupClient() {
   const [busy, setBusy] = useState(false);
   const [moreAnswer, setMoreAnswer] = useState('');
   const [lastDraftDesc, setLastDraftDesc] = useState('');
+  const [offChecks, setOffChecks] = useState([]);
+  const [keyOrder, setKeyOrder] = useState([]);
   const answerRef = useRef(null);
   function setLabel(v) { const d = clone(draft); d.label = v; setDraft(d); }
   function setDocLabel(i, v) { const d = clone(draft); if (!d.documents[i].reuse) d.documents[i].label = v; setDraft(d); }
   function setFieldLabel(i, k, v) { const d = clone(draft); const f = (d.documents[i].fields || []).find((x) => x.key === k); if (f) f.label = v; setDraft(d); }
   function setCheckValue(i, v) { const d = clone(draft); if (d.checks[i]) d.checks[i].value = v; setDraft(d); }
   function setCheckMonths(i, v) { const d = clone(draft); if (d.checks[i]) d.checks[i].months = Number(v); setDraft(d); }
+  function untickCheck(g, item) {
+    const c = draft.checks[item.index];
+    setOffChecks((offs) => offs.concat([{ check: clone(c), text: g.text, pos: item.index }]));
+    setDraft(removeCheck(draft, item.index));
+  }
+  function tickCheck(item) {
+    const o = offChecks[item.offIndex];
+    if (!o) return;
+    const d = clone(draft);
+    d.checks = (d.checks || []).concat([clone(o.check)]);
+    setDraft(d);
+    setOffChecks((offs) => offs.filter((_, i) => i !== item.offIndex));
+  }
+  function setGroupValue(g, key, value) {
+    const idxs = g.items.filter((it) => it.on).map((it) => it.index);
+    setDraft(setGroupField(draft, idxs, key, value));
+    const offIdx = g.items.filter((it) => !it.on).map((it) => it.offIndex);
+    if (offIdx.length) setOffChecks((offs) => offs.map((o, i) => (offIdx.includes(i) ? { ...o, check: { ...o.check, [key]: value } } : o)));
+  }
   function setReqMessage(v) { const d = clone(draft); if (d.requirement) d.requirement.message = v; setDraft(d); }
   async function build(descOverride) {
     const descToUse = typeof descOverride === 'string' ? descOverride : description;
@@ -121,9 +199,9 @@ export default function SetupClient() {
       const r = await fetch('/api/setup/draft', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description: descToUse }) });
       const j = await r.json();
       if (Array.isArray(j.attempts)) setAttempts(j.attempts);
-      if (j.needs_more_info) { setNeedsMoreInfo(String(j.needs_more_info)); setDraft(null); setLastDraftDesc(descToUse); setMsg(''); setBusy(false); return; }
+      if (j.needs_more_info) { setNeedsMoreInfo(String(j.needs_more_info)); setDraft(null); setOffChecks([]); setLastDraftDesc(descToUse); setMsg(''); setBusy(false); return; }
       if (!r.ok) { setNeedsMoreInfo(''); setMsg(j.error || 'Could not build. Please try again.'); setBusy(false); return; }
-      setNeedsMoreInfo(''); setDraft(j.draft); setLastDraftDesc(descToUse); setMsg('');
+      setNeedsMoreInfo(''); setDraft(j.draft); setOffChecks([]); setKeyOrder((j.draft && Array.isArray(j.draft.checks) ? j.draft.checks : []).map(orderKey)); setLastDraftDesc(descToUse); setMsg('');
     } catch { setMsg('Could not build. Please try again.'); }
     setBusy(false);
   }
@@ -244,7 +322,7 @@ export default function SetupClient() {
                       </span>
                       <input className="profile-input" value={f.label || ''} onChange={(e) => setFieldLabel(di, f.key, e.target.value)} placeholder={fieldLabelFallback(f.key)} />
                     </label>
-                    <button type="button" onClick={() => setDraft(removeField(draft, di, f.key))} className="mono setup-text-btn">
+                    <button type="button" onClick={() => { setDraft(removeField(draft, di, f.key)); setOffChecks((offs) => offs.filter((o) => !(o.check.document === id && o.check.field === f.key))); }} className="mono setup-text-btn">
                       Remove this field
                     </button>
                   </div>
@@ -255,28 +333,54 @@ export default function SetupClient() {
           <div className="landing-section-head">
             <span className="landing-section-title">03 — checks</span>
           </div>
-          {(draft.checks || []).map((c, ci) => (
-            <div key={ci} className="setup-check-card">
-              <span className="mono setup-check-label">Check 0{ci + 1}</span>
-              <p className="setup-check-text">{view && view.checks && view.checks[ci] ? view.checks[ci] : 'Check this document.'}</p>
-              {(c.rule === 'equals' || c.rule === 'contains') && (
-                <label className="profile-label">
-                  <span className="mono profile-label-text">Value</span>
-                  <input className="profile-input" value={c.value || ''} onChange={(e) => setCheckValue(ci, e.target.value)} />
-                </label>
-              )}
-              {c.rule === 'within_months' && (
-                <label className="profile-label">
-                  <span className="mono profile-label-text">Months</span>
-                  <input className="profile-input" type="number" min={1} max={24} value={c.months || ''} onChange={(e) => setCheckMonths(ci, e.target.value)} />
-                </label>
-              )}
-              {c.message && <p className="checklist-foot">{String(c.message || '')}</p>}
-              <button type="button" onClick={() => setDraft(removeCheck(draft, ci))} className="mono setup-text-btn">
-                Remove this check
-              </button>
-            </div>
-          ))}
+          {groupChecks(draft, view, offChecks, keyOrder).map((g, gi) => {
+            const c = g.check;
+            const many = g.items.length > 1;
+            const onCount = g.items.filter((it) => it.on).length;
+            const single = !many ? g.items[0] : null;
+            return (
+              <div key={g.key} className={'setup-check-card' + (onCount === 0 ? ' setup-check-card--off' : '')}>
+                <span className="mono setup-check-label">
+                  Check {String(gi + 1).padStart(2, '0')}{many ? ' · ' + onCount + ' of ' + g.items.length + ' papers' : ''}
+                </span>
+                <p className="setup-check-text">{g.text}</p>
+                {many && (
+                  <div className="setup-check-list" role="group" aria-label="Papers this check applies to">
+                    {g.items.map((it) => (
+                      <label key={(it.on ? 'on' : 'off') + (it.on ? it.index : it.offIndex)} className={'setup-check-item' + (it.on ? ' is-on' : '')}>
+                        <input
+                          type="checkbox"
+                          className="setup-check-box"
+                          checked={it.on}
+                          onChange={() => (it.on ? untickCheck(g, it) : tickCheck(it))}
+                        />
+                        <span className="setup-check-mark" aria-hidden="true" />
+                        <span className="setup-check-doc">{it.doc}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+                {onCount > 0 && (c.rule === 'equals' || c.rule === 'contains') && (
+                  <label className="profile-label">
+                    <span className="mono profile-label-text">Value</span>
+                    <input className="profile-input" value={c.value || ''} onChange={(e) => setGroupValue(g, 'value', e.target.value)} />
+                  </label>
+                )}
+                {onCount > 0 && c.rule === 'within_months' && (
+                  <label className="profile-label">
+                    <span className="mono profile-label-text">Months</span>
+                    <input className="profile-input" type="number" min={1} max={24} value={c.months || ''} onChange={(e) => setGroupValue(g, 'months', Number(e.target.value))} />
+                  </label>
+                )}
+                {!many && c.message && <p className="checklist-foot">{String(c.message || '')}</p>}
+                {!many && single && single.on && (
+                  <button type="button" onClick={() => setDraft(removeCheck(draft, single.index))} className="mono setup-text-btn">
+                    Remove this check
+                  </button>
+                )}
+              </div>
+            );
+          })}
           {draft.requirement && (
             <div className="setup-requirement-card">
               <span className="mono setup-check-label">First gate</span>
