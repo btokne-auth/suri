@@ -2824,3 +2824,48 @@ img {
 @media (max-width: 480px) {
   .rv-decision-label { flex-basis: 100%; }
 }
+
+/* Landing stats on narrow screens: the charts stay inside their cell,
+   and below 640px the three cells stack instead of squeezing side by side. */
+.landing-stat { min-width: 0; }
+.landing-stats .landing-grid {
+  grid-template-columns: repeat(20, minmax(0, 7px));
+  max-width: 100%;
+}
+.landing-stats .landing-grid-sq {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+.landing-stats .landing-tick-track { gap: 1px; }
+@media (min-width: 900px) {
+  .landing-stats .landing-tick-track { gap: 2px; }
+}
+@media (max-width: 640px) {
+  .landing-stats { grid-template-columns: minmax(0, 1fr); }
+  .landing-stats .landing-stat + .landing-stat {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 22px;
+  }
+  .landing-stats .landing-stat:nth-child(n)::after { left: -12px; right: -12px; }
+  /* stacked: each chart uses the full width of the screen instead of hugging the left */
+  .landing-stats .landing-bars,
+  .landing-stats .landing-ticks { max-width: none; }
+  .landing-stats .landing-tick-track { max-width: none; justify-content: space-between; }
+  .landing-stats .landing-tick { flex: 0 0 3px; }
+  .landing-stats .landing-grid {
+    grid-template-columns: repeat(30, minmax(0, 1fr));
+    gap: 3px;
+  }
+  .landing-stats .landing-stat-detail { max-width: none; }
+}
+/* phones: holding a stat plays its animation; don't pop the copy menu */
+@media (hover: none) {
+  .landing-stat {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
