@@ -22,7 +22,7 @@ All times Manila. Submission deadline: **Thu Nov 5, 10:00 AM** (Wed Nov 4, 9 PM 
 | 8 | **Proof:** sample documents + answer key, eval script, plain OCR vs Suri scorecard | Sat Oct 31 | A table of real accuracy numbers |
 | 9 | **Should features:** photo quality / retake, wrong-document check, Suri asks before it flags, SAM 3.1 crop, where it came from, compare with plain OCR, security pass | Sun–Mon Nov 1–2 | Each tested on the live URL; eval rerun after SAM |
 | 10 | **Design + polish (see DESIGN.md):** 10a landing, 10b checklist, 10c reviewer, 10d start/profile/setup, favicon, landing hero story, /start + /setup polish. Light mode toggle and isometric hero dropped (out of scope) | Oct 31 – Nov 1 | Done Nov 1 (PRs #14–#17) |
-| 10e | **Outside test + code freeze:** girlfriend tests the live site on her phone, phone run-through, fix only real bugs | Mon Nov 2 | Test notes written, bugs fixed. **Code freeze tonight** |
+| 10e | **Phone test + code freeze:** phone run-through on the live site, fix only real bugs | Mon Nov 2 | Test notes written, bugs fixed. **Code freeze tonight** |
 | 11a | **Ship prep:** README, license, secret scan, clean temp files, make the repo public, video, submission draft | Tue Nov 3 | Repo opens in a logged-out browser; video under 3:00 uploaded; draft ready |
 | 11b | **Submit** | Wed Nov 4 | Submitted, with a screenshot of the confirmation |
 | — | Official deadline (buffer only) | Thu Nov 5, 10 AM | |
@@ -117,7 +117,7 @@ Ticked = seen working on Nov 1. Unticked = not re-checked yet; look during the N
 ## Ship checklist (step 11)
 
 **Nov 2 (test + freeze)**
-- [ ] Girlfriend tests the live site on her phone (sample documents only); write down what confused her
+- [ ] Phone run-through on the live site (sample documents only); write down anything confusing
 - [ ] Phone run-through on the live URL: landing, /start, Linawan flow, receipt flow, /setup draft + save + use
 - [ ] Fix only real bugs; tests still pass
 - [ ] Code freeze in the evening
