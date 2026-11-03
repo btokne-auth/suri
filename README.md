@@ -12,6 +12,8 @@ By "office" I mean any place that asks for papers before it can help you: a scho
 - **Models:** Meta **Muse Spark 1.3** (Meta Model API) and **Muse Spark Open** (open weights, served on **Baseten**)
 - **Built by:** Pauline Estira, solo (design, frontend, backend, database, AI integration, evaluation)
 
+![Suri landing page: "Get it right the first time.", the scanner building a checklist from plain words, and the scorecard](docs/screenshots/landing.png)
+
 ![Reviewer view: the photo next to every field Suri read, the checks, Suri's question and the applicant's answer, and the decision](docs/screenshots/reviewer.png)
 
 ---
