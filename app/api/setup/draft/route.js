@@ -12,7 +12,9 @@ const require = createRequire(import.meta.url);
 const { validateDraft, checkDraftCompatibility, honestyCheck, earlyNeedsMoreInfo } = require('../../../../lib/processes/draft-schema.js');
 const { getDocumentType } = require('../../../../lib/documents/index.js');
 const { describeDraft } = require('../../../../lib/processes/describe.js');
-export const maxDuration = 60;
+// Long descriptions can take one or two model calls of 30s+ each; 60s timed out on Vercel.
+// Hobby allows up to 300s. 180s leaves room for both calls without hanging forever.
+export const maxDuration = 180;
 const MODEL = 'muse-spark-1.3';
 const BASE_URL = 'https://api.meta.ai/v1';
 const SYSTEM_PROMPT = [
