@@ -7,7 +7,7 @@
 By "office" I mean any place that asks for papers before it can help you: a school or scholarship program, a barangay or city hall, a government agency, a cooperative, a bank or lending office.
 
 - **Live demo:** [suri-ph.vercel.app](https://suri-ph.vercel.app) (no account needed, sample documents only)
-- **Demo video:** _link added at submission_
+- **Demo video:** [youtu.be/jGNOurKk2W4](https://youtu.be/jGNOurKk2W4) (2:08)
 - **Track:** Indie Developer · **Theme:** Build for Your World
 - **Models:** Meta **Muse Spark 1.3** (Meta Model API) and **Muse Spark Open** (open weights, served on **Baseten**)
 - **Built by:** Pauline Estira, solo (design, frontend, backend, database, AI integration, evaluation)
